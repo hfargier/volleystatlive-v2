@@ -5,6 +5,7 @@ import { PointLog } from './PointLog';
 import { useMatchStore } from '../../store/matchStore';
 import type { TeamSide, ActionKind, AnyQuality } from '../../types';
 import { DEFAULT_QUALITY, nextExpectedAction } from './gameLogic';
+import './InputView.css';
 
 export function InputView() {
   const {
@@ -16,8 +17,8 @@ export function InputView() {
   } = useMatchStore();
 
   const [hasStartedNew, setHasStartedNew]       = useState(false);
-  const [displayedRallyId, setDisplayedRallyId] = useState<string|null>(null);
-  const [selectedActionId, setSelectedActionId] = useState<string|null>(null);
+  const [displayedRallyId, setDisplayedRallyId] = useState<string | null>(null);
+  const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
 
   const activeRally    = rallies.find((r) => r.id === activeRallyId) ?? null;
   const displayedRally = displayedRallyId
@@ -80,7 +81,7 @@ export function InputView() {
     if (!rid) {
       rid = startRally();
       setHasStartedNew(true);
-      addAction(rid, { kind:'service', phase:'P1', subPhase:1, team:servingTeam, zone:null, quality: DEFAULT_QUALITY['service'] ?? 'S=' } as any);
+      addAction(rid, { kind: 'service', phase: 'P1', subPhase: 1, team: servingTeam, zone: null, quality: DEFAULT_QUALITY['service'] ?? 'S=' } as any);
     }
     const rally = useMatchStore.getState().rallies.find((r) => r.id === rid);
     if (!rally) return;
@@ -97,7 +98,7 @@ export function InputView() {
       kind = 'defense'; quality = 'A='; resolvedTeam = team;
     }
 
-    addAction(rid, { kind, phase:exp.phase, subPhase:exp.subPhase, team:resolvedTeam, zone:null, quality, x, y } as any);
+    addAction(rid, { kind, phase: exp.phase, subPhase: exp.subPhase, team: resolvedTeam, zone: null, quality, x, y } as any);
     setHasStartedNew(true);
 
     if (kind === 'attack' && quality === 'A++')
@@ -106,7 +107,7 @@ export function InputView() {
 
   const handleServiceFault = useCallback(() => {
     const rid = startRally(); setHasStartedNew(true);
-    addAction(rid, { kind:'service_fault', phase:'P1', subPhase:1, team:servingTeam, zone:null, quality:'S-' } as any);
+    addAction(rid, { kind: 'service_fault', phase: 'P1', subPhase: 1, team: servingTeam, zone: null, quality: 'S-' } as any);
     const recv: TeamSide = servingTeam === 'home' ? 'away' : 'home';
     setTimeout(() => { endRally(recv); setHasStartedNew(false); }, 80);
   }, [servingTeam, startRally, addAction, endRally]);
@@ -126,19 +127,19 @@ export function InputView() {
     if (nextAction) {
       const side = nextAction.team === 'home' ? teamHomeName : teamAwayName;
       const k: Record<ActionKind, string> = {
-        service:'Service', service_fault:'Faute svc', reception:'Réception',
-        set:'Passe', attack:'Attaque', defense:'Défense', block:'Bloc', support:'Soutiens',
+        service: 'Service', service_fault: 'Faute svc', reception: 'Réception',
+        set: 'Passe', attack: 'Attaque', defense: 'Défense', block: 'Bloc', support: 'Soutiens',
       };
-      return side.substring(0,10) + ' — ' + k[nextAction.kind];
+      return side.substring(0, 10) + ' — ' + k[nextAction.kind];
     }
     return 'Terminez le point (+1)';
   })();
 
   return (
-    <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
+    <div className="input-view">
 
       {/* Terrain */}
-      <div style={{ flex:3, position:'relative', overflow:'visible', minWidth:0 }}>
+      <div className="input-view__court">
         <CourtWithServer
           servingTeam={servingTeam}
           onCourtClick={handleCourtClick}
@@ -153,38 +154,50 @@ export function InputView() {
       </div>
 
       {/* Colonne droite */}
-      <div style={{ flex:2, display:'flex', flexDirection:'column', borderLeft:'1px solid rgba(255,255,255,0.06)', overflow:'hidden', minWidth:0 }}>
+      <div className="input-view__sidebar">
+
         {/* Titre + score */}
-        <div style={{ padding:'8px 10px 6px', flexShrink:0, background:'#1e1e1e', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:6 }}>
-            <span style={{ fontSize:11, fontWeight:800, letterSpacing:'0.15em', color:'#FFD700' }}>VOLLEYSTAT</span>
-            <span style={{ fontSize:11, color:'#5a554e' }}>LIVE</span>
+        <div className="input-view__header">
+          <div className="input-view__brand">
+            <span className="input-view__brand-name">VOLLEYSTAT</span>
+            <span className="input-view__brand-live">LIVE</span>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <button onClick={() => handleAddPoint('home')} disabled={!activeRallyId}
-              style={{ padding:'2px 7px', borderRadius:5, fontSize:10, fontWeight:700, background:activeRallyId?'rgba(255,215,0,0.15)':'transparent', border:'1px solid '+(activeRallyId?'#FFD700':'rgba(255,255,255,0.06)'), color:activeRallyId?'#FFD700':'#5a554e', cursor:activeRallyId?'pointer':'not-allowed', minHeight:24, whiteSpace:'nowrap' }}>
-              +1 {teamHomeName.substring(0,6)}
+          <div className="input-view__score-bar">
+            <button
+              onClick={() => handleAddPoint('home')}
+              disabled={!activeRallyId}
+              className={`input-view__point-btn input-view__point-btn--home`}
+            >
+              +1 {teamHomeName.substring(0, 6)}
             </button>
-            <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-              <span style={{ fontSize:20, fontWeight:900, color:'#FFD700', lineHeight:1 }}>{scoreHome}</span>
-              <span style={{ fontSize:12, color:'#5a554e' }}>–</span>
-              <span style={{ fontSize:20, fontWeight:900, color:'#ff8a65', lineHeight:1 }}>{scoreAway}</span>
+            <div className="input-view__score-display">
+              <span className="input-view__score-home">{scoreHome}</span>
+              <span className="input-view__score-separator">–</span>
+              <span className="input-view__score-away">{scoreAway}</span>
             </div>
-            <button onClick={() => handleAddPoint('away')} disabled={!activeRallyId}
-              style={{ padding:'2px 7px', borderRadius:5, fontSize:10, fontWeight:700, background:activeRallyId?'rgba(255,138,101,0.15)':'transparent', border:'1px solid '+(activeRallyId?'#ff8a65':'rgba(255,255,255,0.06)'), color:activeRallyId?'#ff8a65':'#5a554e', cursor:activeRallyId?'pointer':'not-allowed', minHeight:24, whiteSpace:'nowrap' }}>
-              +1 {teamAwayName.substring(0,6)}
+            <button
+              onClick={() => handleAddPoint('away')}
+              disabled={!activeRallyId}
+              className={`input-view__point-btn input-view__point-btn--away`}
+            >
+              +1 {teamAwayName.substring(0, 6)}
             </button>
           </div>
         </div>
 
         {/* En-tête frise */}
-        <div style={{ display:'grid', gridTemplateColumns:'28px 1fr 1fr', padding:'3px 4px', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.06)', background:'#1e1e1e' }}>
-          <span/>
-          <span style={{ fontSize:9, fontWeight:700, color:'#FFD700', textAlign:'right', paddingRight:8, letterSpacing:'0.06em' }}>{teamHomeName.substring(0,8).toUpperCase()}</span>
-          <span style={{ fontSize:9, fontWeight:700, color:'#ff8a65', textAlign:'left', paddingLeft:8, letterSpacing:'0.06em' }}>{teamAwayName.substring(0,8).toUpperCase()}</span>
+        <div className="input-view__log-header">
+          <span />
+          <span className="input-view__log-header-home">
+            {teamHomeName.substring(0, 8).toUpperCase()}
+          </span>
+          <span className="input-view__log-header-away">
+            {teamAwayName.substring(0, 8).toUpperCase()}
+          </span>
         </div>
 
-        <div style={{ flex:1, overflow:'hidden' }}>
+        {/* Frise des points */}
+        <div className="input-view__log">
           <PointLog
             hasStartedNewPoint={hasStartedNew}
             onQualityChosen={handleQualityChosen}
@@ -194,6 +207,7 @@ export function InputView() {
             displayedRallyId={displayedRallyId}
           />
         </div>
+
       </div>
     </div>
   );

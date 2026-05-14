@@ -1,0 +1,150 @@
+/* ─── Layout principal ─────────────────────────────────────── */
+.input-view {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ─── Colonne terrain (gauche) ──────────────────────────────── */
+.input-view__court {
+  flex: 3;
+  position: relative;
+  overflow: visible;
+  min-width: 0;
+}
+
+/* ─── Colonne droite ────────────────────────────────────────── */
+.input-view__sidebar {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ─── En-tête : titre + score ───────────────────────────────── */
+.input-view__header {
+  padding: 8px 10px 6px;
+  flex-shrink: 0;
+  background: #1e1e1e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.input-view__brand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.input-view__brand-name {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #ffd700;
+}
+
+.input-view__brand-live {
+  font-size: 11px;
+  color: #5a554e;
+}
+
+/* ─── Barre de score ────────────────────────────────────────── */
+.input-view__score-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-view__score-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.input-view__score-home {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffd700;
+  line-height: 1;
+}
+
+.input-view__score-separator {
+  font-size: 12px;
+  color: #5a554e;
+}
+
+.input-view__score-away {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ff8a65;
+  line-height: 1;
+}
+
+/* ─── Boutons +1 ────────────────────────────────────────────── */
+.input-view__point-btn {
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  min-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.input-view__point-btn--home {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+}
+
+.input-view__point-btn--away {
+  background: rgba(255, 138, 101, 0.15);
+  border: 1px solid #ff8a65;
+  color: #ff8a65;
+}
+
+.input-view__point-btn--home:disabled,
+.input-view__point-btn--away:disabled {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #5a554e;
+  cursor: not-allowed;
+}
+
+/* ─── En-tête de la frise ───────────────────────────────────── */
+.input-view__log-header {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr;
+  padding: 3px 4px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #1e1e1e;
+}
+
+.input-view__log-header-home {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffd700;
+  text-align: right;
+  padding-right: 8px;
+  letter-spacing: 0.06em;
+}
+
+.input-view__log-header-away {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ff8a65;
+  text-align: left;
+  padding-left: 8px;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Zone de log ───────────────────────────────────────────── */
+.input-view__log {
+  flex: 1;
+  overflow: hidden;
+}
