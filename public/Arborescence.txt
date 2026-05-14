@@ -1,0 +1,57 @@
+volleystat-live/
+├── package.json
+├── index.html
+├── vite.config.ts
+├── tsconfig.json
+├── src/
+│   ├── main.tsx
+│   ├── App.tsx
+│   ├── types.ts
+│   ├── store/
+│   │   └── matchStore.ts
+│   ├── hooks/
+│   │   ├── useRotation.ts
+│   │   ├── usePhaseStateMachine.ts
+│   │   └── useUndoStack.ts
+│   ├── utils/
+│   │   ├── statsCalc.ts
+│   │   ├── exportPDF.ts
+│   │   └── exportCSV.ts
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── AppShell.tsx
+│   │   │   ├── TabBar.tsx
+│   │   │   └── UndoButton.tsx
+│   │   ├── setup/
+│   │   │   ├── MatchSetup.tsx
+│   │   │   └── RotationSetup.tsx
+│   │   ├── court/
+│   │   │   ├── CourtCanvas.tsx
+│   │   │   ├── CourtZone.tsx
+│   │   │   ├── TrajectoryOverlay.tsx
+│   │   │   └── PlayerBadge.tsx
+│   │   ├── input/
+│   │   │   ├── PhaseBar.tsx
+│   │   │   ├── ServicePanel.tsx
+│   │   │   ├── QualitySelector.tsx
+│   │   │   └── ScoreInput.tsx
+│   │   └── stats/
+│   │       ├── StatsPanel.tsx
+│   │       ├── SetterDistribution.tsx
+│   │       ├── AttackEfficiency.tsx
+│   │       ├── ReceptionStats.tsx
+│   │       └── AttackHeatmap.tsx
+│   └── styles/
+│       ├── globals.css
+│       ├── court.module.css
+│       └── tokens.css
+
+
+
+types.ts — Refonte du modèle de données. RallyAction devient atomique (une action = un contact ballon), avec kind (service/reception/set/attack/defense/block/support), subPhase pour les P3.1, P3.2... et les coordonnées x,y stockées directement dans l'action pour le dot sur le terrain.
+matchStore.ts — Simplifié autour de addAction / updateActionQuality / removeLastAction. La rotation automatique est gérée dans endRally : si c'est un side-out (le receveur gagne), l'équipe gagnante effectue sa rotation avant le point suivant.
+CourtWithServer.tsx — Nouveau composant terrain. Le serveur (position 1) est sorti du terrain avec sa flèche de direction et un bouton "Faute" à côté. Les clics sont des coordonnées pixel précises (x,y) en 0..1. Le demi-terrain attendu est mis en surbrillance légère.
+RallyTimeline.tsx — La frise. Chaque ligne = une action, colonne gauche home / colonne droite away. Clic sur une ligne = ouvre QualityPicker inline, sans bouton valider.
+QualityPicker.tsx — Sélecteur inline qui se referme dès qu'une qualité est choisie. Zéro bouton valider/passer.
+PointLog.tsx — Scrolle automatiquement vers le bas. Seul le dernier point terminé reste éditable tant qu'on n'a pas cliqué sur le terrain.
+InputView.tsx — Orchestre tout. La fonction nextExpectedAction détermine automatiquement la prochaine action selon la séquence P1→P2(rec→passe→att)→P3.x(def→passe→att)→... Le bouton ↩ annule le dernier clic terrain (ou le dernier point si aucun rally actif).

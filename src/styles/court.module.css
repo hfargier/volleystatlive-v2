@@ -1,0 +1,157 @@
+/* src/styles/court.module.css */
+/* ============================================================
+   Terrain de volley-ball en CSS pur
+   Proportions officielles: 18m x 9m (ratio 2:1)
+   Divisé en 9 zones (3x3m chacune) + zone adversaire miroir
+   ============================================================ */
+
+   .courtWrapper {
+    position: relative;
+    width: 100%;
+    /* ratio 9:18 = 0.5 => mais on affiche les 2 équipes donc 9+9 = 18m de haut */
+    /* Sur mobile on montre terrain complet: ratio largeur/hauteur = 9/18 */
+    aspect-ratio: 1 / 2;
+    max-height: 100%;
+    max-width: calc(50vh); /* garde proportions sur mobile */
+    margin: 0 auto;
+  }
+  
+  .court {
+    position: absolute;
+    inset: 0;
+    background: var(--court-bg);
+    border: 2px solid var(--court-line);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* ---- Demi-terrains ---- */
+  .halfCourt {
+    flex: 1;
+    position: relative;
+    display: grid;
+    /* 3 colonnes x 3 lignes = 9 zones */
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+  
+  /* Ligne centrale (filet) */
+  .net {
+    height: 4px;
+    background: var(--net-color);
+    box-shadow: 0 0 8px rgba(255,215,0,0.6);
+    position: relative;
+    flex-shrink: 0;
+  }
+  
+  .net::before {
+    content: 'FILET';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    background: var(--bg-base);
+    padding: 0 6px;
+  }
+  
+  /* ---- Zones ---- */
+  .zone {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--court-zone);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.1s ease;
+    user-select: none;
+  }
+  
+  .zone:hover {
+    background: var(--court-zone-hover);
+  }
+  
+  .zone.active {
+    background: var(--court-zone-active);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  
+  .zone.selected-reception {
+    background: rgba(129, 199, 132, 0.25);
+    border-color: var(--color-reception);
+  }
+  
+  .zone.selected-set {
+    background: rgba(206, 147, 216, 0.25);
+    border-color: var(--color-set);
+  }
+  
+  .zone.selected-attack {
+    background: rgba(255, 138, 101, 0.25);
+    border-color: var(--color-attack);
+  }
+  
+  /* Numéro de zone officiel volley (affiché en fond) */
+  .zoneLabel {
+    font-size: 18px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    line-height: 1;
+  }
+  
+  /* Player badge dans zone */
+  .playerInZone {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #111;
+    font-size: 9px;
+    font-weight: 800;
+    border-radius: 10px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  
+  /* Lignes de 3m (zones avant/arrière) - ligne supplémentaire */
+  .halfCourt::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 33.33%;
+    height: 1px;
+    background: rgba(255,255,255,0.35);
+    pointer-events: none;
+  }
+  
+  /* Trajectory SVG overlay */
+  .trajectoryOverlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  /* Dot de point de contact */
+  .contactDot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 11;
+  }
+  
+  .contactDot.reception { background: var(--color-reception); }
+  .contactDot.set { background: var(--color-set); }
+  .contactDot.attack { background: var(--color-attack); }

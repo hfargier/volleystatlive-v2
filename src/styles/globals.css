@@ -1,0 +1,53 @@
+/* src/styles/tokens.css */
+/* ============================================================
+   Design tokens - Thème Dark Pro VolleyStat Live
+   ============================================================ */
+
+   :root {
+    /* Couleurs principales */
+    --bg-base: #1a1a1a;
+    --bg-surface: #222222;
+    --bg-raised: #2a2a2a;
+    --bg-hover: #333333;
+  
+    /* Accent jaune volley */
+    --accent: #FFD700;
+    --accent-dim: #b39900;
+    --accent-glow: rgba(255, 215, 0, 0.15);
+  
+    /* Texte */
+    --text-primary: #f0ede6;
+    --text-secondary: #a0998e;
+    --text-dim: #5a554e;
+  
+    /* États d'actions */
+    --color-service: #4fc3f7;
+    --color-reception: #81c784;
+    --color-set: #ce93d8;
+    --color-attack: #ff8a65;
+    --color-block: #ff5252;
+  
+    /* Qualités */
+    --q-minus: #f44336;
+    --q-equal: #ff9800;
+    --q-plus: #4caf50;
+    --q-plusplus: #FFD700;
+  
+    /* Terrain */
+    --court-bg: #1c3a2a;
+    --court-line: rgba(255, 255, 255, 0.7);
+    --court-zone: rgba(255, 255, 255, 0.04);
+    --court-zone-hover: rgba(255, 215, 0, 0.12);
+    --court-zone-active: rgba(255, 215, 0, 0.28);
+    --net-color: #FFD700;
+  
+    /* Spacing / radius */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --touch-min: 44px;
+  
+    /* Shadows */
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 16px rgba(255, 215, 0, 0.3);
+  }
