@@ -12,10 +12,11 @@ interface Props {
   selectedActionId: string | null;
   onSelectRally: (rallyId: string) => void;
   onSelectAction: (actionId: string | null) => void;
+  onUndo?: () => void;
 }
 
 const KIND_LABEL: Record<string,string> = {
-  service:'Service', service_fault:'Faute svc', reception:'Réception',
+  service:'Service', service_fault:'Service', reception:'Réception',
   set:'Passe', attack:'Attaque', defense:'Défense', block:'Bloc', support:'Soutiens',
 };
 const KIND_COLOR: Record<string,string> = {
@@ -29,11 +30,14 @@ function phaseLabel(a: RallyAction): string {
   return 'P3.' + a.subPhase;
 }
 
-function ActionChip({ label, quality, color }: { label:string; quality:AnyQuality|null; color:string }) {
+function ActionChip({ label, quality, color, playerNumber }: { label:string; quality:AnyQuality|null; color:string; playerNumber?: number }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:3 }}>
       <div style={{ width:3, height:14, background:color, borderRadius:2, flexShrink:0 }}/>
       <span style={{ color:'#f0ede6', fontSize:10, fontWeight:600 }}>{label}</span>
+      {playerNumber != null && (
+        <span style={{ fontSize:9, color:'#a0998e', fontWeight:700 }}>#{playerNumber}</span>
+      )}
       {quality && (
         <span style={{ fontSize:9, color, fontWeight:800, background:color+'18', borderRadius:3, padding:'0 4px' }}>
           {quality}
@@ -43,9 +47,15 @@ function ActionChip({ label, quality, color }: { label:string; quality:AnyQualit
   );
 }
 
+function resolvePlayerNumber(action: import('../../types').RallyAction, rally: import('../../types').Rally): number | undefined {
+  if (!action.playerId) return undefined;
+  const rotation = action.team === 'home' ? rally.rotationHome : rally.rotationAway;
+  return Object.values(rotation).find(p => p.id === action.playerId)?.number;
+}
+
 export function RallyTimeline({
   rally, isActive, editable, isDisplayed,
-  onQualityChosen, selectedActionId, onSelectRally, onSelectAction,
+  onQualityChosen, selectedActionId, onSelectRally, onSelectAction, onUndo,
 }: Props) {
 
   const handlePick = (actionId: string, q: AnyQuality) => {
@@ -84,17 +94,21 @@ export function RallyTimeline({
       </div>
 
       {/* Actions */}
-      {rally.actions.map((a) => {
-        const isHome     = a.team === 'home';
-        const color      = KIND_COLOR[a.kind] ?? '#888';
-        const isSelected = selectedActionId === a.id;
+      {rally.actions.map((a, idx) => {
+        const isHome       = a.team === 'home';
+        const color        = KIND_COLOR[a.kind] ?? '#888';
+        const isSelected   = selectedActionId === a.id;
+        const isLast       = isActive && idx === rally.actions.length - 1;
+        const playerNumber = (a.kind === 'service' || a.kind === 'service_fault')
+          ? resolvePlayerNumber(a, rally)
+          : undefined;
 
         return (
           <div key={a.id}>
             <div
               onPointerDown={() => toggleAction(a.id)}
               style={{
-                display:'grid', gridTemplateColumns:'32px 1fr 1fr',
+                display:'grid', gridTemplateColumns: isLast ? '32px 1fr 1fr 16px' : '32px 1fr 1fr',
                 alignItems:'center', gap:2, padding:'2px 4px', borderRadius:3,
                 cursor:'pointer',
                 background: isSelected ? 'rgba(255,215,0,0.08)' : 'transparent',
@@ -103,11 +117,19 @@ export function RallyTimeline({
             >
               <span style={{ fontSize:9, color:'#5a554e', fontWeight:700 }}>{phaseLabel(a)}</span>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:6 }}>
-                {isHome && <ActionChip label={KIND_LABEL[a.kind]??a.kind} quality={a.quality} color={color}/>}
+                {isHome && <ActionChip label={KIND_LABEL[a.kind]??a.kind} quality={a.quality} color={color} playerNumber={playerNumber}/>}
               </div>
               <div style={{ display:'flex', alignItems:'center', paddingLeft:6 }}>
-                {!isHome && <ActionChip label={KIND_LABEL[a.kind]??a.kind} quality={a.quality} color={color}/>}
+                {!isHome && <ActionChip label={KIND_LABEL[a.kind]??a.kind} quality={a.quality} color={color} playerNumber={playerNumber}/>}
               </div>
+              {isLast && (
+                <button
+                  onPointerDown={(e) => { e.stopPropagation(); onUndo?.(); }}
+                  style={{ background:'none', border:'none', color:'#5a554e', fontSize:12, cursor:'pointer', padding:0, lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center' }}
+                >
+                  ×
+                </button>
+              )}
             </div>
             {isSelected && editable && (
               <QualityPicker kind={a.kind} current={a.quality} onPick={(q) => handlePick(a.id, q)}/>

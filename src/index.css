@@ -19,11 +19,12 @@
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
-  background: var(--bg);
+  background: #1a1a1a;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 
   @media (max-width: 1024px) {
     font-size: 16px;
@@ -51,19 +52,27 @@
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  width: 100%;
+  height: 100dvh;
+  margin: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  background: #1a1a1a;
+}
+
+html {
+  overflow: hidden;
+  height: 100%;
+  background: #1a1a1a;
 }
 
 body {
   margin: 0;
+  overflow: hidden;
+  height: 100%;
+  background: #1a1a1a;
 }
 
 h1,

@@ -23,8 +23,9 @@ export function AppShell() {
       {/* Pas de header — le terrain prend toute la hauteur */}
       <main style={{
         flex: 1, overflow: 'hidden',
-        paddingBottom: 56,          // place pour la TabBar
+        paddingBottom: 56,
         display: 'flex', flexDirection: 'column',
+        boxSizing: 'border-box',
       }}>
         {tab === 'input'  && <InputView />}
         {tab === 'stats'  && <StatsPanel />}

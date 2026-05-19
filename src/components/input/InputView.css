@@ -1,7 +1,8 @@
 /* ─── Layout principal ─────────────────────────────────────── */
 .input-view {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -9,7 +10,7 @@
 .input-view__court {
   flex: 3;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   min-width: 0;
 }
 
@@ -21,6 +22,51 @@
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
   min-width: 0;
+  position: relative;
+}
+
+.input-view__sidebar-tab {
+  display: none;
+}
+
+/* ── Portrait : drawer glissant ─────────────────────────────── */
+@media (orientation: portrait) {
+  .input-view__sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 68%;
+    transform: translateX(calc(100% - 28px));
+    transition: transform 0.28s ease;
+    z-index: 20;
+    background: #1e1e1e;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .input-view__sidebar--open {
+    transform: translateX(0);
+  }
+
+  .input-view__sidebar-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translate(-100%, -50%);
+    width: 28px;
+    height: 52px;
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    color: #a0998e;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 21;
+  }
 }
 
 /* ─── En-tête : titre + score ───────────────────────────────── */
@@ -147,4 +193,12 @@
 .input-view__log {
   flex: 1;
   overflow: hidden;
+}
+
+.input-view__log *  {
+  scrollbar-width: none;
+}
+
+.input-view__log *::-webkit-scrollbar {
+  display: none;
 }

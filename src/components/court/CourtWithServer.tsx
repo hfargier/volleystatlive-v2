@@ -1,7 +1,8 @@
 // src/components/court/CourtWithServer.tsx
-import React, { useCallback } from 'react';
-import type { TeamSide, Position, AnyQuality } from '../../types';
+import React, { useCallback, useRef } from 'react';
+import type { TeamSide, Position, AnyQuality, PlayerRole } from '../../types';
 import { useMatchStore } from '../../store/matchStore';
+import styles from './CourtWithServer.module.css';
 
 interface Dot {
   id: string;
@@ -11,16 +12,77 @@ interface Dot {
   quality: AnyQuality | null;
 }
 
+export interface SideOutDot {
+  playerId: string;
+  number: number;
+  x: number;
+  y: number;
+  mainRole: PlayerRole | null;
+}
+
+export interface EditDot {
+  playerId: string;
+  number: number;
+  x: number;
+  y: number;
+  roles: PlayerRole[];
+}
+
+export interface AttackZoneBound {
+  role: PlayerRole | null;
+  x0: number; x1: number;
+  y0: number; y1: number;
+}
+
+// ── Attack zone bounds (half-court coords, no flip) ──────────────────────────
+// HOME: y=0 near net, y=1 back baseline
+// AWAY: y=0 back baseline, y=1 near net
+export const ATTACK_ZONE_BOUNDS: Record<TeamSide, AttackZoneBound[]> = {
+  home: [
+    { role: 'attacker_4',    x0: 0,   x1: 1/3, y0: 0,   y1: 1/3 },
+    { role: 'attacker_3',    x0: 1/3, x1: 2/3, y0: 0,   y1: 1/3 },
+    { role: 'attacker_2',    x0: 2/3, x1: 1,   y0: 0,   y1: 1/3 },
+    { role: null,            x0: 0,   x1: 1/3, y0: 1/3, y1: 2/3 },
+    { role: 'attacker_pipe', x0: 1/3, x1: 2/3, y0: 1/3, y1: 2/3 },
+    { role: 'attacker_1',    x0: 2/3, x1: 1,   y0: 1/3, y1: 2/3 },
+    { role: null,            x0: 0,   x1: 1/3, y0: 2/3, y1: 1   },
+    { role: null,            x0: 1/3, x1: 2/3, y0: 2/3, y1: 1   },
+    { role: null,            x0: 2/3, x1: 1,   y0: 2/3, y1: 1   },
+  ],
+  away: [
+    { role: null,            x0: 0,   x1: 1/3, y0: 0,   y1: 1/3 },
+    { role: null,            x0: 1/3, x1: 2/3, y0: 0,   y1: 1/3 },
+    { role: null,            x0: 2/3, x1: 1,   y0: 0,   y1: 1/3 },
+    { role: 'attacker_1',    x0: 0,   x1: 1/3, y0: 1/3, y1: 2/3 },
+    { role: 'attacker_pipe', x0: 1/3, x1: 2/3, y0: 1/3, y1: 2/3 },
+    { role: null,            x0: 2/3, x1: 1,   y0: 1/3, y1: 2/3 },
+    { role: 'attacker_2',    x0: 0,   x1: 1/3, y0: 2/3, y1: 1   },
+    { role: 'attacker_3',    x0: 1/3, x1: 2/3, y0: 2/3, y1: 1   },
+    { role: 'attacker_4',    x0: 2/3, x1: 1,   y0: 2/3, y1: 1   },
+  ],
+};
+
 interface Props {
   servingTeam: TeamSide;
   onCourtClick: (x: number, y: number, team: TeamSide) => void;
   onServiceFault: () => void;
-  onUndo: () => void;
+
   dots: Dot[];
   highlightTeam: TeamSide | null;
   instruction: string;
   selectedActionId: string | null;
   onDotTap: (actionId: string) => void;
+  sideOutDots?: { home: SideOutDot[]; away: SideOutDot[] };
+
+  // Edit mode
+  editDots?: { home: EditDot[]; away: EditDot[] };
+  editSelectedId?: string | null;
+  onEditDotDrag?: (playerId: string, team: TeamSide, x: number, y: number) => void;
+  onEditDotTap?:  (playerId: string, team: TeamSide) => void;
+
+  // Attack zone grid (edit mode, sideOut config)
+  showAttackZones?: boolean;
+  onZoneLink?: (playerId: string, team: TeamSide, role: PlayerRole) => void;
 }
 
 const KIND_LETTER: Record<string, string> = {
@@ -33,6 +95,18 @@ const KIND_COLOR: Record<string, string> = {
   service:'#FFD700', service_fault:'#f44336',
   reception:'#81c784', set:'#ce93d8', attack:'#ff8a65',
   defense:'#4fc3f7', block:'#ff5252', support:'#a5d6a7',
+};
+
+const ROLE_COLOR: Record<string, string> = {
+  setter:'#ce93d8', receiver:'#81c784',
+  attacker_4:'#ff8a65', attacker_3:'#ffb74d',
+  attacker_2:'#ff7043', attacker_1:'#ef5350', attacker_pipe:'#ffa726',
+  blocker:'#4fc3f7', defender:'#a5d6a7',
+};
+
+const ZONE_LABELS: Partial<Record<PlayerRole, string>> = {
+  attacker_4: '4', attacker_3: '3', attacker_2: '2',
+  attacker_1: '1', attacker_pipe: 'P',
 };
 
 function qualityBg(q: AnyQuality | null): string {
@@ -49,8 +123,8 @@ const HOME_LAYOUT: Partial<Record<Position,[number,number]>> = {
   5:[17,75], 6:[50,75],
 };
 const AWAY_LAYOUT: Partial<Record<Position,[number,number]>> = {
-  5:[83,75], 6:[50,75], 4:[17,75],
-  2:[83,25], 3:[50,25],
+  2:[17,75], 3:[50,75], 4:[83,75],
+  5:[83,25], 6:[50,25],
 };
 
 const HALF = 0.495;
@@ -91,10 +165,7 @@ function FullCourtTrajectory({ dots, selectedActionId, onDotTap }: {
 
   return (
     <>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-        style={{ position:'absolute', top:14, bottom:14, left:0, right:0,
-          width:'100%', height:'calc(100% - 28px)',
-          pointerEvents:'none', zIndex:7 }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={styles.trajectorySvg}>
         {lines}
       </svg>
 
@@ -108,30 +179,21 @@ function FullCourtTrajectory({ dots, selectedActionId, onDotTap }: {
           <div
             key={'lbl'+i}
             onPointerDown={(e) => { e.stopPropagation(); onDotTap(dot.id); }}
+            className={styles.dotHitArea}
             style={{
-              position: 'absolute',
               left: `calc(${g.gx * 100}% - 11px)`,
-              top:  `calc(14px + ${g.gy * 100} * (100% - 28px) / 100 - 11px)`,
-              padding: 11,
-              margin: -11,
-              zIndex: 10,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              touchAction: 'none',
+              top:  `calc(${g.gy * 100}% - 11px)`,
             }}
           >
-            <div style={{
-              width: 22, height: 22, borderRadius: '50%',
-              background: isSelected ? color + '35' : qualityBg(dot.quality),
-              border: '1px solid ' + (isSelected ? color : color + '70'),
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: isSelected ? '0 0 5px ' + color + '50' : 'none',
-              transition: 'all 0.1s',
-            }}>
-              <span style={{
-                fontSize: 9, fontWeight: 800,
-                color: isSelected ? color : color + 'bb',
-                lineHeight: 1,
-              }}>
+            <div
+              className={styles.dotCircle}
+              style={{
+                background: isSelected ? color + '35' : qualityBg(dot.quality),
+                border: '1px solid ' + (isSelected ? color : color + '70'),
+                boxShadow: isSelected ? '0 0 5px ' + color + '50' : 'none',
+              }}
+            >
+              <span className={styles.dotLetter} style={{ color: isSelected ? color : color + 'bb' }}>
                 {letter}
               </span>
             </div>
@@ -142,17 +204,213 @@ function FullCourtTrajectory({ dots, selectedActionId, onDotTap }: {
   );
 }
 
+function SideOutGhosts({ dots }: { dots: SideOutDot[] }) {
+  if (dots.length === 0) return null;
+  return (
+    <>
+      {dots.map(d => {
+        const color = d.mainRole ? (ROLE_COLOR[d.mainRole] ?? '#a0998e') : '#a0998e';
+        return (
+          <div
+            key={d.playerId}
+            style={{
+              position: 'absolute',
+              left: `${d.x * 100}%`,
+              top:  `${d.y * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              width: 24, height: 24,
+              borderRadius: '50%',
+              border: `1.5px dashed ${color}80`,
+              background: color + '0d',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          >
+            <span style={{ fontSize: 8, fontWeight: 800, color: color + '90' }}>{d.number}</span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// ── Attack zone grid overlay ─────────────────────────────────────────────────
+function AttackZoneGrid({ team, dots, selectedId, onZoneTap }: {
+  team: TeamSide;
+  dots: EditDot[];
+  selectedId: string | null;
+  onZoneTap: (role: PlayerRole) => void;
+}) {
+  const zones = ATTACK_ZONE_BOUNDS[team];
+
+  return (
+    <>
+      {zones.map((zone, i) => {
+        if (!zone.role) {
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: `${zone.x0 * 100}%`, width: `${(zone.x1 - zone.x0) * 100}%`,
+              top:  `${zone.y0 * 100}%`, height: `${(zone.y1 - zone.y0) * 100}%`,
+              border: '1px solid rgba(255,255,255,0.05)',
+              pointerEvents: 'none',
+              zIndex: 3,
+            }} />
+          );
+        }
+        const linked = dots.find(d => d.roles.includes(zone.role!));
+        const c = ROLE_COLOR[zone.role] ?? '#fff';
+        return (
+          <div key={i}
+            style={{
+              position: 'absolute',
+              left: `${zone.x0 * 100}%`, width: `${(zone.x1 - zone.x0) * 100}%`,
+              top:  `${zone.y0 * 100}%`, height: `${(zone.y1 - zone.y0) * 100}%`,
+              border: `1px solid ${linked ? c + '70' : c + '28'}`,
+              background: linked ? c + '15' : (selectedId ? c + '08' : 'transparent'),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: selectedId ? 'pointer' : 'default',
+              pointerEvents: selectedId ? 'auto' : 'none',
+              transition: 'background 0.12s',
+              zIndex: 3,
+            }}
+            onPointerDown={e => {
+              e.stopPropagation();
+              onZoneTap(zone.role!);
+            }}
+          >
+            <span style={{
+              fontSize: 13, fontWeight: 900,
+              color: linked ? c : c + '50',
+              pointerEvents: 'none',
+            }}>
+              {ZONE_LABELS[zone.role]}
+            </span>
+          </div>
+        );
+      })}
+
+      {/* SVG arrows from player dots to their linked zones */}
+      <svg
+        style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          pointerEvents: 'none', overflow: 'visible', zIndex: 4,
+        }}
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        {dots.flatMap(dot =>
+          dot.roles
+            .filter(r => r.startsWith('attacker_'))
+            .flatMap(role => {
+              const zone = zones.find(z => z.role === role);
+              if (!zone) return [];
+              const zx = (zone.x0 + zone.x1) / 2 * 100;
+              const zy = (zone.y0 + zone.y1) / 2 * 100;
+              const c = ROLE_COLOR[role as PlayerRole] ?? '#fff';
+              return [(
+                <line key={`${dot.playerId}-${role}`}
+                  x1={dot.x * 100} y1={dot.y * 100}
+                  x2={zx} y2={zy}
+                  stroke={c} strokeWidth={1.5} strokeOpacity={0.75}
+                  strokeDasharray="3 2"
+                />
+              )];
+            })
+        )}
+      </svg>
+    </>
+  );
+}
+
+// ── Editable dots (drag only — no tap-to-place) ──────────────────────────────
+const DRAG_THRESHOLD = 6; // px
+
+function EditableDots({ dots, team, halfRef, selectedId, onTap, onDrag }: {
+  dots: EditDot[];
+  team: TeamSide;
+  halfRef: React.RefObject<HTMLDivElement>;
+  selectedId: string | null;
+  onTap:  (playerId: string, team: TeamSide) => void;
+  onDrag: (playerId: string, team: TeamSide, x: number, y: number) => void;
+}) {
+  const dragState = useRef<{
+    playerId: string;
+    startX: number; startY: number;
+    dragging: boolean;
+  } | null>(null);
+
+  return (
+    <>
+      {dots.map(dot => {
+        const isSelected = dot.playerId === selectedId;
+        const mainRole   = dot.roles[0] as PlayerRole | undefined;
+        const color      = mainRole ? (ROLE_COLOR[mainRole] ?? '#a0998e') : '#a0998e';
+
+        return (
+          <div
+            key={dot.playerId}
+            style={{
+              position: 'absolute',
+              left: `${dot.x * 100}%`,
+              top:  `${dot.y * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              width: 32, height: 32,
+              borderRadius: '50%',
+              background: isSelected ? color + '50' : color + '22',
+              border: `2px solid ${isSelected ? color : color + '90'}`,
+              boxShadow: isSelected ? `0 0 9px ${color}90` : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'grab', touchAction: 'none', zIndex: 15, userSelect: 'none',
+            }}
+            onPointerDown={e => {
+              e.stopPropagation();
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              dragState.current = { playerId: dot.playerId, startX: e.clientX, startY: e.clientY, dragging: false };
+            }}
+            onPointerMove={e => {
+              const ds = dragState.current;
+              if (!ds || ds.playerId !== dot.playerId || !halfRef.current) return;
+              if (!ds.dragging) {
+                if (Math.hypot(e.clientX - ds.startX, e.clientY - ds.startY) < DRAG_THRESHOLD) return;
+                ds.dragging = true;
+              }
+              const r = halfRef.current.getBoundingClientRect();
+              onDrag(dot.playerId, team,
+                Math.max(0.03, Math.min(0.97, (e.clientX - r.left) / r.width)),
+                Math.max(0.06, Math.min(0.97, (e.clientY - r.top)  / r.height)),
+              );
+            }}
+            onPointerUp={e => {
+              const ds = dragState.current;
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+              if (ds && ds.playerId === dot.playerId && !ds.dragging) {
+                onTap(dot.playerId, team);
+              }
+              dragState.current = null;
+            }}
+            onPointerCancel={() => { dragState.current = null; }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 900, color, pointerEvents: 'none' }}>
+              {dot.number}
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 function PlayerCircle({ number, team }: { number: number; team: TeamSide }) {
   const c = team === 'home' ? '#FFD700' : '#ff8a65';
   return (
-    <div style={{
-      width:26, height:26, borderRadius:'50%',
-      background: c+'18', border:'1.5px solid '+c,
-      display:'flex', alignItems:'center', justifyContent:'center',
-      fontSize:10, fontWeight:800, color:c,
-      position:'absolute', transform:'translate(-50%,-50%)',
-      pointerEvents:'none', zIndex:3,
-    }}>{number}</div>
+    <div
+      className={styles.playerCircle}
+      style={{ background: c + '18', border: '1.5px solid ' + c, color: c }}
+    >
+      {number}
+    </div>
   );
 }
 
@@ -161,30 +419,46 @@ function ServerBadge({ number, team, onFault }: {
 }) {
   const c = team === 'home' ? '#FFD700' : '#ff8a65';
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
-      {team === 'away' && <div style={{ fontSize:12, color:c }}>▼</div>}
-      <div style={{ width:30, height:30, borderRadius:'50%', background:c, color:'#111', fontSize:12, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid rgba(255,255,255,0.25)', boxShadow:'0 2px 8px rgba(0,0,0,0.5)' }}>{number}</div>
-      {team === 'home' && <div style={{ fontSize:12, color:c }}>▲</div>}
-      <button onClick={onFault} style={{ background:'rgba(244,67,54,0.2)', border:'1px solid #f44336', borderRadius:4, padding:'2px 5px', fontSize:8, fontWeight:700, color:'#f44336', cursor:'pointer', minWidth:30, textAlign:'center' }}>Faute</button>
+    <div className={styles.serverBadge}>
+      <div className={styles.serverBadgeMain}>
+        {team === 'away' && <div className={styles.serverArrow} style={{ color: c }}>▼</div>}
+        <div className={styles.serverCircle} style={{ background: c }}>{number}</div>
+        {team === 'home' && <div className={styles.serverArrow} style={{ color: c }}>▲</div>}
+      </div>
+      <button onClick={onFault} className={styles.faultButton}>Serv. faute</button>
     </div>
   );
 }
 
 export function CourtWithServer({
-  servingTeam, onCourtClick, onServiceFault, onUndo,
+  servingTeam, onCourtClick, onServiceFault,
   dots, highlightTeam, instruction, selectedActionId, onDotTap,
+  sideOutDots,
+  editDots, editSelectedId, onEditDotDrag, onEditDotTap,
+  showAttackZones, onZoneLink,
 }: Props) {
   const rotationHome = useMatchStore((s) => s.rotationHome);
   const rotationAway = useMatchStore((s) => s.rotationAway);
-  const teamHomeName = useMatchStore((s) => s.teamHomeName);
-  const teamAwayName = useMatchStore((s) => s.teamAwayName);
 
+  const homeHalfRef = useRef<HTMLDivElement>(null);
+  const awayHalfRef = useRef<HTMLDivElement>(null);
+
+  const isEditMode = !!editDots;
+
+  // Stats mode click (disabled in edit mode)
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>, team: TeamSide) => {
+    if (isEditMode) return;
     const r = e.currentTarget.getBoundingClientRect();
     onCourtClick((e.clientX-r.left)/r.width, (e.clientY-r.top)/r.height, team);
-  }, [onCourtClick]);
+  }, [onCourtClick, isEditMode]);
+
+  const handleZoneTap = useCallback((role: PlayerRole, team: TeamSide) => {
+    if (!editSelectedId || !onZoneLink) return;
+    onZoneLink(editSelectedId, team, role);
+  }, [editSelectedId, onZoneLink]);
 
   const renderPlayers = (team: TeamSide) => {
+    if (isEditMode) return null;
     const rot    = team === 'home' ? rotationHome : rotationAway;
     const layout = team === 'home' ? HOME_LAYOUT : AWAY_LAYOUT;
     if (!rot) return null;
@@ -201,70 +475,107 @@ export function CourtWithServer({
     });
   };
 
-  const halfStyle = (team: TeamSide): React.CSSProperties => ({
-    flex:1, position:'relative', cursor:'default', overflow:'hidden',
-    background: highlightTeam===team
-      ? (team==='home' ? 'rgba(255,215,0,0.07)' : 'rgba(255,138,101,0.07)')
-      : '#1c3a2a',
-    outline: highlightTeam===team
-      ? '1px solid '+(team==='home' ? 'rgba(255,215,0,0.3)' : 'rgba(255,138,101,0.3)')
-      : 'none',
-    transition: 'background 0.15s',
-  });
+  const halfDynamicStyle = (team: TeamSide): React.CSSProperties => {
+    if (isEditMode) return { background: '#1c3a2a' };
+    return {
+      background: highlightTeam === team
+        ? (team === 'home' ? 'rgba(255,215,0,0.07)' : 'rgba(255,138,101,0.07)')
+        : '#1c3a2a',
+      outline: highlightTeam === team
+        ? '1px solid ' + (team === 'home' ? 'rgba(255,215,0,0.3)' : 'rgba(255,138,101,0.3)')
+        : 'none',
+    };
+  };
 
   const srvHome = rotationHome?.[1]?.number ?? 0;
   const srvAway = rotationAway?.[1]?.number ?? 0;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', width:'100%', overflow:'visible' }}>
+    <div className={styles.courtWrapper}>
 
-      <div style={{ height:68, flexShrink:0, display:'flex', alignItems:'flex-end', justifyContent:'flex-start', paddingLeft:8, paddingBottom:4, overflow:'visible' }}>
-        {servingTeam === 'away' && <ServerBadge number={srvAway} team="away" onFault={onServiceFault}/>}
-      </div>
+      <div className={styles.courtArea}>
+        <div className={styles.courtRow}>
+          <div className={styles.courtColumn}>
+            <div className={styles.serverSlot}>
+              {!isEditMode && servingTeam === 'away' && (
+                <div className={styles.serverBadgeTop}>
+                  <ServerBadge number={srvAway} team="away" onFault={onServiceFault}/>
+                </div>
+              )}
+            </div>
 
-      <div style={{ flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible' }}>
-        <div style={{
-          height:'100%', aspectRatio:'1/2',
-          display:'flex', flexDirection:'column',
-          border:'2px solid rgba(255,255,255,0.6)',
-          overflow:'hidden', flexShrink:0,
-          position:'relative',
-        }}>
-          <FullCourtTrajectory dots={dots} selectedActionId={selectedActionId} onDotTap={onDotTap}/>
+            <div className={styles.courtBox}>
+              {!isEditMode && (
+                <FullCourtTrajectory dots={dots} selectedActionId={selectedActionId} onDotTap={onDotTap}/>
+              )}
 
-          <div style={{ height:14, flexShrink:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:9 }}>
-            <span style={{ fontSize:8, fontWeight:700, color:'#ff8a65', letterSpacing:'0.1em', textTransform:'uppercase' }}>{teamAwayName.substring(0,14)}</span>
+              <div className={styles.half} style={halfDynamicStyle('away')}
+                ref={awayHalfRef}
+                onClick={(e) => handleClick(e,'away')}>
+                <div className={styles.attackLine} style={{ bottom:'33%' }}/>
+                {renderPlayers('away')}
+                {!isEditMode && sideOutDots && <SideOutGhosts dots={sideOutDots.away} />}
+                {isEditMode && editDots && onEditDotTap && onEditDotDrag && (
+                  <>
+                    {showAttackZones && (
+                      <AttackZoneGrid
+                        team="away"
+                        dots={editDots.away}
+                        selectedId={editSelectedId ?? null}
+                        onZoneTap={role => handleZoneTap(role, 'away')}
+                      />
+                    )}
+                    <EditableDots dots={editDots.away} team="away"
+                      halfRef={awayHalfRef}
+                      selectedId={editSelectedId ?? null}
+                      onTap={onEditDotTap} onDrag={onEditDotDrag} />
+                  </>
+                )}
+              </div>
+
+              <div className={styles.net}>
+                <div className={styles.netPoleLeft} />
+                <span className={styles.netLabel}>FILET</span>
+                <div className={styles.netPoleRight} />
+              </div>
+
+              <div className={styles.half} style={halfDynamicStyle('home')}
+                ref={homeHalfRef}
+                onClick={(e) => handleClick(e,'home')}>
+                <div className={styles.attackLine} style={{ top:'33%' }}/>
+                {renderPlayers('home')}
+                {!isEditMode && sideOutDots && <SideOutGhosts dots={sideOutDots.home} />}
+                {isEditMode && editDots && onEditDotTap && onEditDotDrag && (
+                  <>
+                    {showAttackZones && (
+                      <AttackZoneGrid
+                        team="home"
+                        dots={editDots.home}
+                        selectedId={editSelectedId ?? null}
+                        onZoneTap={role => handleZoneTap(role, 'home')}
+                      />
+                    )}
+                    <EditableDots dots={editDots.home} team="home"
+                      halfRef={homeHalfRef}
+                      selectedId={editSelectedId ?? null}
+                      onTap={onEditDotTap} onDrag={onEditDotDrag} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.serverSlot}>
+              {!isEditMode && servingTeam === 'home' && (
+                <div className={styles.serverBadgeBottom}>
+                  <ServerBadge number={srvHome} team="home" onFault={onServiceFault}/>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={halfStyle('away')} onClick={(e) => handleClick(e,'away')}>
-            <div style={{ position:'absolute', left:0, right:0, bottom:'33%', height:1, background:'rgba(255,255,255,0.22)', pointerEvents:'none', zIndex:2 }}/>
-            {renderPlayers('away')}
-          </div>
-
-          <div style={{ height:5, flexShrink:0, background:'#FFD700', boxShadow:'0 0 8px rgba(255,215,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:9 }}>
-            <span style={{ fontSize:7, fontWeight:800, color:'#111', letterSpacing:'0.15em' }}>FILET</span>
-          </div>
-
-          <div style={halfStyle('home')} onClick={(e) => handleClick(e,'home')}>
-            <div style={{ position:'absolute', left:0, right:0, top:'33%', height:1, background:'rgba(255,255,255,0.22)', pointerEvents:'none', zIndex:2 }}/>
-            {renderPlayers('home')}
-          </div>
-
-          <div style={{ height:14, flexShrink:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:9 }}>
-            <span style={{ fontSize:8, fontWeight:700, color:'#FFD700', letterSpacing:'0.1em', textTransform:'uppercase' }}>{teamHomeName.substring(0,14)}</span>
-          </div>
         </div>
       </div>
 
-      <div style={{ height:68, flexShrink:0, display:'flex', alignItems:'flex-start', justifyContent:'flex-end', paddingRight:8, paddingTop:4, gap:8, overflow:'visible' }}>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', justifyContent:'center', gap:4 }}>
-          <span style={{ fontSize:9, color:'#a0998e', fontStyle:'italic', textAlign:'right', maxWidth:110 }}>{instruction}</span>
-          <button onClick={onUndo} style={{ display:'flex', alignItems:'center', gap:4, padding:'4px 10px', borderRadius:6, background:'#2a2a2a', border:'1px solid rgba(255,255,255,0.1)', color:'#a0998e', fontSize:10, fontWeight:700, cursor:'pointer', minHeight:28 }}>
-            <span style={{ fontSize:14 }}>↩</span> Annuler
-          </button>
-        </div>
-        {servingTeam === 'home' && <ServerBadge number={srvHome} team="home" onFault={onServiceFault}/>}
-      </div>
     </div>
   );
 }

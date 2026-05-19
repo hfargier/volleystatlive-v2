@@ -1,0 +1,274 @@
+/* ── Overlay ─────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #0e1e15;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: #a0998e;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f0ede6;
+  letter-spacing: 0.06em;
+  flex: 1;
+}
+
+.teamToggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.teamBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a0998e;
+  cursor: pointer;
+}
+
+.teamBtnActive {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.4);
+  color: #FFD700;
+}
+
+/* ── Config type toggle (Side Out / Bloc-Def) ────────────── */
+.configToggle {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 6px;
+  flex-shrink: 0;
+}
+
+.configBtn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 5px;
+  padding: 5px 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a0998e;
+  cursor: pointer;
+}
+
+.configBtnActive {
+  background: rgba(129, 199, 132, 0.12);
+  border-color: rgba(129, 199, 132, 0.45);
+  color: #81c784;
+}
+
+.configBtnActiveBloc {
+  background: rgba(79, 195, 247, 0.12);
+  border-color: rgba(79, 195, 247, 0.45);
+  color: #4fc3f7;
+}
+
+/* ── Rotation tabs ───────────────────────────────────────── */
+.rotTabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.rotTabs::-webkit-scrollbar { display: none; }
+
+.rotTab {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a0998e;
+  cursor: pointer;
+  line-height: 1.3;
+  text-align: center;
+  min-width: 38px;
+}
+
+.rotTabActive {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.4);
+  color: #FFD700;
+}
+
+.rotTabSub {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* ── Court container ─────────────────────────────────────── */
+.courtContainer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.halfCourt {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  background: #1c3a2a;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  touch-action: none;
+  user-select: none;
+}
+
+.netLabel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: #FFD700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: 0.1em;
+  z-index: 2;
+}
+
+.attackLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  top: 33%;
+}
+
+/* ── Player dot (draggable) ──────────────────────────────── */
+.playerDot {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+  z-index: 5;
+  transition: box-shadow 0.1s, background 0.1s;
+}
+
+.playerNum {
+  font-size: 11px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+/* ── Role picker ─────────────────────────────────────────── */
+.rolePicker {
+  flex-shrink: 0;
+  padding: 6px 12px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rolePickerTitle {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #f0ede6;
+  margin-bottom: 5px;
+}
+
+.roleChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.roleChip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #a0998e;
+  cursor: pointer;
+}
+
+.roleChipActive {
+  font-weight: 800;
+}
+
+/* ── Save button ─────────────────────────────────────────── */
+.saveBtn {
+  flex-shrink: 0;
+  margin: 6px 12px 10px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 6px;
+  color: #FFD700;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+/* ── Side Out ghost overlay (shown during play) ─────────── */
+.sideOutDot {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.sideOutDotNum {
+  font-size: 9px;
+  font-weight: 800;
+}
