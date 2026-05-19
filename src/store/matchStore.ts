@@ -4,12 +4,13 @@ import { persist } from 'zustand/middleware';
 import type {
   MatchState, Rally, RallyAction, TeamSide,
   Player, Position, AnyQuality, ActionKind, CourtZone,
+  SideOutPlayer,
 } from '../types';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 const makePlayer = (num: number, pos: Position, isSetter=false): Player =>
-  ({ id: uid(), number: num, name: 'J'+num, position: pos, isSetter });
+  ({ id: uid(), number: num, name: 'J'+num, position: pos, isSetter, defaultRoles: isSetter ? ['setter'] : [] });
 
 const defaultRot = (offset=0): Record<Position,Player> => ({
   1: makePlayer(1+offset,1,true),
@@ -33,10 +34,14 @@ const INIT: MatchState = {
   rallies: [],
   activeRallyId: null,
   isSetupComplete: false,
+  sideOutHome: {},
+  sideOutAway: {},
+  blocDefHome: {},
+  blocDefAway: {},
 };
 
 // Rotation d'une équipe : chaque joueur avance d'une position (1->2->...->6->1)
-function doRotate(rot: Record<Position,Player>): Record<Position,Player> {
+export function doRotate(rot: Record<Position,Player>): Record<Position,Player> {
   const next = {} as Record<Position,Player>;
   const pos: Position[] = [1,2,3,4,5,6];
   pos.forEach(p => {
@@ -50,6 +55,8 @@ interface Store extends MatchState {
   initMatch: (home: string, away: string) => void;
   setSetupComplete: () => void;
   updatePlayer: (team: TeamSide, pos: Position, num: number, name?: string) => void;
+  saveSideOut:  (team: TeamSide, serverId: string, players: SideOutPlayer[]) => void;
+  saveBlocDef:  (team: TeamSide, serverId: string, players: SideOutPlayer[]) => void;
 
   // Rally
   startRally: () => string;
@@ -71,6 +78,18 @@ export const useMatchStore = create<Store>()(
       const key = team === 'home' ? 'rotationHome' : 'rotationAway';
       return { [key]: { ...s[key], [pos]: { ...s[key][pos], number: num, name: name ?? 'J'+num } } };
     }),
+
+    saveSideOut: (team, serverId, players) => set(s => (
+      team === 'home'
+        ? { sideOutHome: { ...s.sideOutHome, [serverId]: players } }
+        : { sideOutAway: { ...s.sideOutAway, [serverId]: players } }
+    )),
+
+    saveBlocDef: (team, serverId, players) => set(s => (
+      team === 'home'
+        ? { blocDefHome: { ...s.blocDefHome, [serverId]: players } }
+        : { blocDefAway: { ...s.blocDefAway, [serverId]: players } }
+    )),
 
     startRally: () => {
       const s = get();

@@ -11,11 +11,12 @@ interface Props {
   onSelectRally: (rallyId: string) => void;
   onSelectAction: (actionId: string | null) => void;
   displayedRallyId: string | null;
+  onUndo: () => void;
 }
 
 export function PointLog({
   hasStartedNewPoint, onQualityChosen,
-  selectedActionId, onSelectRally, onSelectAction, displayedRallyId,
+  selectedActionId, onSelectRally, onSelectAction, displayedRallyId, onUndo,
 }: Props) {
   const rallies       = useMatchStore((s) => s.rallies);
   const activeRallyId = useMatchStore((s) => s.activeRallyId);
@@ -51,6 +52,7 @@ export function PointLog({
             selectedActionId={selectedActionId}
             onSelectRally={onSelectRally}
             onSelectAction={onSelectAction}
+            onUndo={isActive ? onUndo : undefined}
           />
         );
       })}

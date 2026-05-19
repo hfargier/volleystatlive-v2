@@ -1,0 +1,298 @@
+/* ── Layout principal ─────────────────────────────────────── */
+.courtWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.courtArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.courtRow {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Colonne qui enveloppe slot haut + terrain + slot bas */
+.courtColumn {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Slots au-dessus / en-dessous du terrain (même largeur que le terrain) */
+.serverSlot {
+  width: 100%;
+  height: 68px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Badge positionné à 83% (aligné avec le poste 2) */
+.serverBadgeTop {
+  position: absolute;
+  left: 83%;
+  transform: translateX(-50%);
+  bottom: 4px;
+}
+
+.serverBadgeBottom {
+  position: absolute;
+  left: 83%;
+  transform: translateX(-50%);
+  top: 4px;
+}
+
+/* Zone contrôles (instruction + annuler) en bas */
+.controlsZone {
+  height: 68px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 8px;
+  padding-top: 4px;
+  overflow: visible;
+}
+
+/* ── Labels équipes ───────────────────────────────────────── */
+.teamLabelAway {
+  font-size: 8px;
+  font-weight: 700;
+  color: #ff8a65;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  align-self: flex-start;
+}
+
+.teamLabelHome {
+  font-size: 8px;
+  font-weight: 700;
+  color: #ffd700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  align-self: flex-end;
+}
+
+/* ── Terrain ──────────────────────────────────────────────── */
+.courtBox {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: 1 / 2;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  overflow: visible;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.half {
+  flex: 1;
+  position: relative;
+  cursor: default;
+  overflow: hidden;
+  transition: background 0.15s;
+}
+
+.attackLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.net {
+  height: 5px;
+  flex-shrink: 0;
+  background: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 9;
+  margin-left: -30px;
+  margin-right: -30px;
+}
+
+.netLabel {
+  font-size: 7px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: 0.15em;
+}
+
+.netPoleLeft,
+.netPoleRight {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffd700;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
+  z-index: 10;
+}
+
+.netPoleLeft  { left:  0; }
+.netPoleRight { right: 0; }
+
+/* ── Contrôles (instruction + annuler) ───────────────────── */
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+
+.instruction {
+  font-size: 9px;
+  color: #a0998e;
+  font-style: italic;
+  text-align: right;
+  max-width: 110px;
+}
+
+.undoButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a0998e;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.undoIcon {
+  font-size: 14px;
+}
+
+/* ── PlayerCircle ─────────────────────────────────────────── */
+.playerCircle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ── ServerBadge ──────────────────────────────────────────── */
+.serverBadge {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.serverBadgeMain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.serverArrow {
+  font-size: 12px;
+}
+
+.serverCircle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #111;
+  font-size: 12px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.faultButton {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #f44336;
+  cursor: pointer;
+  min-width: 30px;
+  text-align: center;
+}
+
+/* ── Trajectoires & dots ──────────────────────────────────── */
+.trajectorySvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.dotHitArea {
+  position: absolute;
+  padding: 11px;
+  margin: -11px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.dotCircle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+}
+
+.dotLetter {
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
