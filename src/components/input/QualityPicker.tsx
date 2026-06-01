@@ -21,7 +21,7 @@ const OPTS: Record<string, Option[]> = {
     { value:'S++', label:'S++ Ace',    color:'#FFD700' },
   ],
   reception: [
-    { value:'Zip', label:'Zip Parfaite', color:'#FFD700' },
+    { value:'Zip', label:'Zip (ace)',     color:'#FFD700' },
     { value:'R+',  label:'R+ Bonne',     color:'#4caf50' },
     { value:'R=',  label:'R= Moyenne',   color:'#ff9800' },
     { value:'R-',  label:'R− Faible',    color:'#f44336' },
@@ -38,14 +38,15 @@ const OPTS: Record<string, Option[]> = {
     { value:'A-',  label:'A− Faute',    color:'#f44336' },
   ],
   defense: [
-    { value:'A+',  label:'Défense OK',  color:'#4caf50' },
-    { value:'A=',  label:'Contactée',   color:'#ff9800' },
-    { value:'A-',  label:'Non touchée', color:'#f44336' },
+    { value:'D+',  label:'D+ OK',        color:'#4caf50' },
+    { value:'D=',  label:'D= Contactée', color:'#ff9800' },
+    { value:'D-',  label:'D− Non touch', color:'#f44336' },
   ],
   block: [
-    { value:'A++', label:'Bloc Point',  color:'#FFD700' },
-    { value:'A+',  label:'Bloc Touch.', color:'#4caf50' },
-    { value:'A=',  label:'Bloc rebond', color:'#ff9800' },
+    { value:'B++', label:'B++ Point',   color:'#FFD700' },
+    { value:'B+',  label:'B+ Défense',  color:'#4caf50' },
+    { value:'B=',  label:'B= Retour',   color:'#ff9800' },
+    { value:'B-',  label:'B− Out',      color:'#f44336' },
   ],
   support: [
     { value:'R+',  label:'Soutien OK',  color:'#4caf50' },

@@ -13,18 +13,21 @@ interface Props {
 // ── Rôles disponibles par mode ───────────────────────────────────────────────
 
 const SIDEOUT_ROLES: PlayerRole[] = [
-  'setter', 'receiver', 'attacker_4', 'attacker_3', 'attacker_2', 'attacker_1', 'attacker_pipe',
+  'setter', 'receiver', 'central', 'pointu', 'libero', 'attacker_pipe', 'attacker_1',
 ];
 const BLOCDEF_ROLES: PlayerRole[] = ['blocker', 'defender'];
 
 const ROLE_LABELS: Record<PlayerRole, string> = {
-  setter:        'Passeur',
-  receiver:      'Récepteur',
-  attacker_4:    'Att. 4',
-  attacker_3:    'Att. 3',
-  attacker_2:    'Att. 2',
-  attacker_1:    'Att. 1',
+  setter:        'Passeur △',
+  receiver:      'Réceptionneur',
+  central:       'Central',
+  pointu:        'Pointu',
+  libero:        'Libero',
+  attacker_4:    'Zone 4',
+  attacker_3:    'Zone 3',
+  attacker_2:    'Zone 2',
   attacker_pipe: 'Pipe',
+  attacker_1:    'Zone 1',
   blocker:       'Bloqueur',
   defender:      'Défenseur',
 };
@@ -32,11 +35,14 @@ const ROLE_LABELS: Record<PlayerRole, string> = {
 const ROLE_COLORS: Record<PlayerRole, string> = {
   setter:        '#ce93d8',
   receiver:      '#81c784',
+  central:       '#ffb74d',
+  pointu:        '#ff7043',
+  libero:        '#4fc3f7',
   attacker_4:    '#ff8a65',
   attacker_3:    '#ffb74d',
   attacker_2:    '#ff7043',
-  attacker_1:    '#ef5350',
   attacker_pipe: '#ffa726',
+  attacker_1:    '#ef5350',
   blocker:       '#4fc3f7',
   defender:      '#a5d6a7',
 };

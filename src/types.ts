@@ -4,13 +4,19 @@ export type Position = 1 | 2 | 3 | 4 | 5 | 6;
 export type CourtZone = 'Z1'|'Z2'|'Z3'|'Z4'|'Z5'|'Z6';
 
 export type PlayerRole =
-  | 'setter'
-  | 'receiver'
-  | 'attacker_4'
-  | 'attacker_3'
-  | 'attacker_2'
-  | 'attacker_1'
-  | 'attacker_pipe'
+  // ── Positions (affichées sur les dots) ────────────────────
+  | 'setter'         // passeur        → triangle △
+  | 'receiver'       // réceptionneur  → R
+  | 'central'        // central        → C
+  | 'pointu'         // pointu         → P
+  | 'libero'         // libero         → L
+  // ── Zones d'attaque (linkage terrain, indépendants des positions) ──
+  | 'attacker_4'     // zone 4  (ailier gauche)
+  | 'attacker_3'     // zone 3  (central)
+  | 'attacker_2'     // zone 2  (pointu)
+  | 'attacker_pipe'  // pipe    (arrière milieu)
+  | 'attacker_1'     // zone 1  (arrière droit)
+  // ── Bloc/Déf ─────────────────────────────────────────────
   | 'blocker'
   | 'defender';
 
@@ -34,7 +40,9 @@ export type ServiceQuality  = 'S-'|'S='|'S+'|'S++';
 export type ReceptionQuality= 'Zip'|'R-'|'R='|'R+';
 export type SetQuality      = 'P-'|'P+'|'P++';
 export type AttackQuality   = 'A-'|'A='|'A+'|'A++';
-export type AnyQuality = ServiceQuality|ReceptionQuality|SetQuality|AttackQuality;
+export type BlockQuality    = 'B-'|'B='|'B+'|'B++';
+export type DefenseQuality  = 'D-'|'D='|'D+';
+export type AnyQuality = ServiceQuality|ReceptionQuality|SetQuality|AttackQuality|BlockQuality|DefenseQuality;
 
 export type PhaseType = 'P1'|'P2'|'P3';
 
@@ -76,9 +84,17 @@ export interface Rally {
   endedAt: number | null;
 }
 
+// ---- Libero (7e joueur hors rotation) ----
+export interface LiberoPlayer {
+  id: string;
+  number: number;
+  name: string;
+}
+
 // ---- Etat global ----
 export interface MatchState {
   matchId: string;
+  matchDate: string;      // ISO date YYYY-MM-DD
   teamHomeName: string;
   teamAwayName: string;
   currentSet: number;
@@ -96,6 +112,12 @@ export interface MatchState {
   // Bloc/Def configs (équipe au service) : same key convention
   blocDefHome: Record<string, SideOutPlayer[]>;
   blocDefAway: Record<string, SideOutPlayer[]>;
+  // Bloc/Def S configs (équipe en réception, module 3+) : same key convention
+  blocDefSHome: Record<string, SideOutPlayer[]>;
+  blocDefSAway: Record<string, SideOutPlayer[]>;
+  // Libéros (un par équipe, hors rotation)
+  liberoHome: LiberoPlayer | null;
+  liberoAway: LiberoPlayer | null;
 }
 
 // ---- Coordonnée pixel sur le terrain ----

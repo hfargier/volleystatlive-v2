@@ -6,8 +6,8 @@ export const DEFAULT_QUALITY: Partial<Record<ActionKind, AnyQuality>> = {
   reception: 'R+',
   set:       'P+',
   attack:    'A+',
-  defense:   'A+',
-  block:     'A=',
+  defense:   'D+',
+  block:     'B++',
   support:   'R+',
 };
 
@@ -32,8 +32,20 @@ export function nextExpectedAction(
     return { kind:'set', team:last.team, subPhase:last.subPhase, phase:'P3' };
   if (last.phase === 'P3' && last.kind === 'set')
     return { kind:'attack', team:last.team, subPhase:last.subPhase, phase:'P3' };
-  if (last.phase === 'P3' && last.kind === 'block')
-    return { kind:'support', team:last.team==='home'?'away':'home', subPhase:last.subPhase+1, phase:'P3' };
+  if (last.phase === 'P3' && last.kind === 'block') {
+    // B++ ou B- : le rally est terminé (géré dans InputView)
+    if (!last.quality || last.quality === 'B++' || last.quality === 'B-') return null;
+    // B= : la balle revient chez l'attaquant → soutien de l'équipe attaquante
+    if (last.quality === 'B=') {
+      const attackerTeam: TeamSide = last.team === 'home' ? 'away' : 'home';
+      return { kind:'support', team: attackerTeam, subPhase: last.subPhase + 1, phase:'P3' };
+    }
+    // B+ : bloque ralenti, la balle reste chez le bloqueur → défense du bloqueur
+    if (last.quality === 'B+') {
+      return { kind:'defense', team: last.team, subPhase: last.subPhase, phase:'P3' };
+    }
+    return null;
+  }
   if (last.phase === 'P3' && last.kind === 'support')
     return { kind:'set', team:last.team, subPhase:last.subPhase, phase:'P3' };
   return null;

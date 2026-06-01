@@ -11,7 +11,7 @@ const SERVICE_OPTS: QualityOption[] = [
   { value: 'S++', line1: 'S++', line2: 'Ace', color: '#FFD700', bg: 'rgba(255,215,0,0.2)' },
 ];
 const RECEPTION_OPTS: QualityOption[] = [
-  { value: 'Zip', line1: 'ZIP', line2: 'Parfaite', color: '#FFD700', bg: 'rgba(255,215,0,0.2)' },
+  { value: 'Zip', line1: 'ZIP', line2: 'Ace',      color: '#FFD700', bg: 'rgba(255,215,0,0.2)' },
   { value: 'R+', line1: 'R+', line2: 'Bonne', color: '#4caf50', bg: 'rgba(76,175,80,0.15)' },
   { value: 'R=', line1: 'R=', line2: 'Moyenne', color: '#ff9800', bg: 'rgba(255,152,0,0.15)' },
   { value: 'R-', line1: 'R-', line2: 'Faible', color: '#f44336', bg: 'rgba(244,67,54,0.15)' },
