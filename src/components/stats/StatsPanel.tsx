@@ -6,6 +6,8 @@ import { SetterDistribution } from './SetterDistribution';
 import { AttackEfficiency } from './AttackEfficiency';
 import { ReceptionStats } from './ReceptionStats';
 import { AttackHeatmap } from './AttackHeatmap';
+import { AttackAngles } from './AttackAngles';
+import { StatsTable } from './StatsTable';
 import { useMatchStore } from '../../store/matchStore';
 import { exportToCSV } from '../../utils/exportCSV';
 import { exportToPDF } from '../../utils/exportPDF';
@@ -52,11 +54,15 @@ export function StatsPanel() {
         })}
       </div>
 
+      {/* Tableau comparatif */}
+      <div style={card}><StatsTable /></div>
+
       <div style={card}><SetterDistribution phase="P2" team={teamFilter} /></div>
       <div style={card}><SetterDistribution phase="P3" team={teamFilter} /></div>
       <div style={card}><ReceptionStats team={teamFilter} /></div>
       <div style={card}><AttackEfficiency team={teamFilter} /></div>
       <div style={card}><AttackHeatmap team={teamFilter} /></div>
+      <div style={card}><AttackAngles team={teamFilter === 'home' ? 'away' : 'home'} /></div>
 
       {/* Export */}
       <div style={{ display: 'flex', gap: 8 }}>
