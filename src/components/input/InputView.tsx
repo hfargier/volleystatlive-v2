@@ -1,15 +1,15 @@
 // src/components/input/InputView.tsx
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { CourtWithServer, ATTACK_ZONE_BOUNDS } from '../court/CourtWithServer';
+import { CourtWithServer } from '../court/CourtWithServer';
 import type { SideOutDot, EditDot } from '../court/CourtWithServer';
 import { PointLog } from './PointLog';
 import { useMatchStore, doRotate } from '../../store/matchStore';
-import type { TeamSide, ActionKind, AnyQuality, PlayerRole, Position, SideOutPlayer, Player, RallyAction } from '../../types';
-import { DEFAULT_QUALITY, nextExpectedAction } from './gameLogic';
+import type { TeamSide, PlayerRole, Position, SideOutPlayer, Player, RallyAction } from '../../types';
 import { CloudSync } from '../cloud/CloudSync';
 import { listModels } from '../../api/volleyApi';
 import type { ApiModel } from '../../api/volleyApi';
 import { BUILTIN_MODELS } from '../../api/modelTemplates';
+import { useRallyHandlers } from './useRallyHandlers';
 import './InputView.css';
 
 // ── Defaults de positions (coords half-court brutes, pas de flip) ────────────
@@ -124,26 +124,16 @@ export function InputView() {
     blocDefHome, blocDefAway,
     blocDefSHome, blocDefSAway,
     saveSideOut, saveBlocDef, saveBlocDefS,
-    startRally, addAction, updateActionQuality, updateActionPlayer,
-    removeLastAction, endRally, undoLastPoint,
+    undoLastPoint,
     scoreHome, scoreAway,
   } = useMatchStore();
   const applyModelStore = useMatchStore(s => s.applyModel);
 
-  // ── Stats state ──────────────────────────────────────────────────────────
-  const [hasStartedNew, setHasStartedNew]       = useState(false);
-  const [isBlockPending, setIsBlockPending]     = useState(false);
-  const [displayedRallyId, setDisplayedRallyId] = useState<string | null>(null);
-  const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen]           = useState(false);
-  const [cloudOpen, setCloudOpen]               = useState(false);
-  const [viewWindow, setViewWindow]             = useState(0);
-  const touchStartX    = useRef<number | null>(null);
-  const pendingBlockEnd = useRef<{
-    timer: ReturnType<typeof setTimeout>;
-    blockActionId: string;
-    blockerTeam: TeamSide;
-  } | null>(null);
+  // ── UI state ─────────────────────────────────────────────────────────────
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cloudOpen, setCloudOpen]     = useState(false);
+  const [viewWindow, setViewWindow]   = useState(0);
+  const touchStartX = useRef<number | null>(null);
 
   // ── Edit state ───────────────────────────────────────────────────────────
   const [editMode, setEditMode]                 = useState(false);
@@ -159,6 +149,20 @@ export function InputView() {
   // ── Modèles disponibles pour l'apply en edit ─────────────────────────────
   const [editApiModels, setEditApiModels]       = useState<ApiModel[]>([]);
   const [editApplyModelId, setEditApplyModelId] = useState<string>('__none__');
+
+  // ── Handlers de saisie centralisés ───────────────────────────────────────
+  const {
+    isBlockPending, hasStartedNew,
+    selectedActionId, setSelectedActionId,
+    displayedRallyId,
+    activeRally, displayedRally,
+    nextAction, netHighlight, instruction,
+    handleDotTap, handleSelectRally,
+    handleUpdatePlayer, handleQualityChosen,
+    handleNetClick, handleCourtClick,
+    handleOutZoneClick, handleServiceFault,
+    handleUndo, handleAddPoint,
+  } = useRallyHandlers(editMode);
 
   useEffect(() => {
     listModels().then(ms => setEditApiModels(ms)).catch(() => {});
@@ -493,13 +497,7 @@ export function InputView() {
     });
   }, [editRotIdx]);
 
-  // ── Stats ────────────────────────────────────────────────────────────────
-  const activeRally    = rallies.find((r) => r.id === activeRallyId) ?? null;
-  const displayedRally = displayedRallyId
-    ? rallies.find((r) => r.id === displayedRallyId) ?? activeRally
-    : activeRally;
-
-  const nextAction    = activeRally ? nextExpectedAction(activeRally.actions, servingTeam) : null;
+  // ── Dérivés rendu ────────────────────────────────────────────────────────
   const highlightTeam: TeamSide | null = !activeRally
     ? (servingTeam === 'home' ? 'away' : 'home')
     : nextAction?.team ?? null;
@@ -522,9 +520,7 @@ export function InputView() {
   // Serveur       → BlocDef (fallback sideOut)
   // Receveur P1/P2 → SideOut
   // Receveur P3+   → BlocDefS (fallback sideOut)
-  const isP3 = activeRally
-    ? nextExpectedAction(activeRally.actions, servingTeam)?.phase === 'P3'
-    : false;
+  const isP3 = nextAction?.phase === 'P3';
 
   const sideOutDots = useMemo((): { home: SideOutDot[]; away: SideOutDot[] } | undefined => {
     if (editMode) return undefined;
@@ -580,399 +576,8 @@ export function InputView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode, isP3, displayedRally, servingTeam, rotationHome, rotationAway, sideOutHome, sideOutAway, blocDefHome, blocDefAway, blocDefSHome, blocDefSAway]);
 
-  // Auto-assign closest player — coords brutes, pas de flip
-  const findSideOutPlayer = useCallback((x: number, y: number, team: TeamSide): string | null => {
-    const rot    = team === 'home' ? rotationHome : rotationAway;
-    const config = (team === 'home' ? sideOutHome : sideOutAway)[rot[1].id];
-    if (!config || config.length === 0) return null;
-    // Priorité aux joueurs avec rôle 'receiver' ; fallback sur tous si aucun configuré
-    const pool = config.filter(sp => sp.roles.includes('receiver'));
-    const cands = pool.length > 0 ? pool : config;
-    let minDist = Infinity; let closest: string | null = null;
-    cands.forEach(sp => {
-      const d = Math.hypot(sp.x - x, sp.y - y);
-      if (d < minDist) { minDist = d; closest = sp.playerId; }
-    });
-    return closest;
-  }, [rotationHome, rotationAway, sideOutHome, sideOutAway]);
 
-  const findBlocDefPlayer = useCallback((x: number, y: number, team: TeamSide, isBlock: boolean): string | null => {
-    const rot    = team === 'home' ? rotationHome : rotationAway;
-    const config = (team === 'home' ? blocDefHome : blocDefAway)[rot[1].id];
-    if (!config || config.length === 0) return null;
-    const targetRole = isBlock ? 'blocker' : 'defender';
-    const pool = config.filter(sp => sp.roles.includes(targetRole));
-    const cands = pool.length > 0 ? pool : config;
-    let minDist = Infinity; let closest: string | null = null;
-    cands.forEach(sp => {
-      const d = Math.hypot(sp.x - x, sp.y - y);
-      if (d < minDist) { minDist = d; closest = sp.playerId; }
-    });
-    return closest;
-  }, [rotationHome, rotationAway, blocDefHome, blocDefAway]);
 
-  const findBlocDefSPlayer = useCallback((x: number, y: number, team: TeamSide, isBlock: boolean): string | null => {
-    const rot    = team === 'home' ? rotationHome : rotationAway;
-    const config = (team === 'home' ? blocDefSHome : blocDefSAway)[rot[1].id];
-    if (!config || config.length === 0) {
-      // fallback sur sideOut si blocDefS pas configuré
-      return null;
-    }
-    const targetRole = isBlock ? 'blocker' : 'defender';
-    const pool = config.filter(sp => sp.roles.includes(targetRole));
-    const cands = pool.length > 0 ? pool : config;
-    let minDist = Infinity; let closest: string | null = null;
-    cands.forEach(sp => {
-      const d = Math.hypot(sp.x - x, sp.y - y);
-      if (d < minDist) { minDist = d; closest = sp.playerId; }
-    });
-    return closest;
-  }, [rotationHome, rotationAway, blocDefSHome, blocDefSAway]);
-
-  // Retourne le playerId du passeur dans la rotation courante de l'équipe
-  const findSetter = useCallback((team: TeamSide): string | null => {
-    const rot = team === 'home' ? rotationHome : rotationAway;
-    return Object.values(rot).find(p => p.isSetter || p.defaultRoles.includes('setter'))?.id ?? null;
-  }, [rotationHome, rotationAway]);
-
-  const findAttackPlayer = useCallback((x: number, y: number, team: TeamSide): string | null => {
-    const rot    = team === 'home' ? rotationHome : rotationAway;
-    const config = (team === 'home' ? sideOutHome : sideOutAway)[rot[1].id];
-    if (!config || config.length === 0) return null;
-    const zones = ATTACK_ZONE_BOUNDS[team];
-    const tapped = zones.find(z => z.role && x >= z.x0 && x < z.x1 && y >= z.y0 && y < z.y1);
-    if (!tapped?.role) return null;
-    return config.find(sp => sp.roles.includes(tapped.role!))?.playerId ?? null;
-  }, [rotationHome, rotationAway, sideOutHome, sideOutAway]);
-
-  const handleDotTap = useCallback((actionId: string) => {
-    setSelectedActionId((prev) => prev === actionId ? null : actionId);
-  }, []);
-
-  const handleSelectRally = useCallback((rallyId: string) => {
-    setDisplayedRallyId((prev) => prev === rallyId ? null : rallyId);
-    setSelectedActionId(null);
-  }, []);
-
-  const handleQualityChosen = useCallback((rallyId: string, actionId: string, q: AnyQuality) => {
-    updateActionQuality(rallyId, actionId, q);
-    setSelectedActionId(null);
-
-    // ── Rallye terminé (point passé) : simple correction, pas d'effets de bord ─
-    if (rallyId !== activeRallyId) return;
-
-    // ── Rallye actif : logique complète avec effets de bord ──────────────────
-    const rally = useMatchStore.getState().rallies.find((r) => r.id === rallyId);
-    if (!rally) return;
-    const action = rally.actions.find((a) => a.id === actionId);
-    if (!action) return;
-    if (action.kind === 'block') {
-      // Annule le timer en attente si l'utilisateur choisit manuellement une qualité
-      if (pendingBlockEnd.current) {
-        clearTimeout(pendingBlockEnd.current.timer);
-        pendingBlockEnd.current = null;
-        setIsBlockPending(false);
-      }
-      const blockerTeam = action.team;
-      const attackerTeam: TeamSide = blockerTeam === 'home' ? 'away' : 'home';
-      if (q === 'B++') {
-        setTimeout(() => { endRally(blockerTeam); setHasStartedNew(false); }, 120);
-      } else if (q === 'B-') {
-        setTimeout(() => { endRally(attackerTeam); setHasStartedNew(false); }, 120);
-      }
-      // B= et B+ → pas de fin automatique, le jeu continue
-      return;
-    }
-    if (action.kind === 'attack' && q === 'A++') {
-      setTimeout(() => { endRally(action.team); setHasStartedNew(false); }, 120); return;
-    }
-    // Réception Zip (ace) → service ace → met le service précédent en S++ + point serveur
-    if (action.kind === 'reception' && q === 'Zip') {
-      const server: TeamSide = action.team === 'home' ? 'away' : 'home';
-      const serviceAction = rally.actions.find(a => a.kind === 'service');
-      if (serviceAction && serviceAction.quality !== 'S++')
-        updateActionQuality(rallyId, serviceAction.id, 'S++');
-      setTimeout(() => { endRally(server); setHasStartedNew(false); }, 120); return;
-    }
-    if (action.kind === 'service' && q === 'S++') {
-      // Ace → efface le joueur sur la réception suivante (personne n'a touché le ballon)
-      const receptionAction = rally.actions.find(a => a.kind === 'reception');
-      if (receptionAction?.playerId) updateActionPlayer(rallyId, receptionAction.id, null);
-      setTimeout(() => { endRally(action.team); setHasStartedNew(false); }, 120); return;
-    }
-    if (action.kind === 'service' && q === 'S-') {
-      const recv: TeamSide = action.team === 'home' ? 'away' : 'home';
-      setTimeout(() => { endRally(recv); setHasStartedNew(false); }, 120); return;
-    }
-    if (action.kind === 'attack' && q === 'A-') {
-      const recv: TeamSide = action.team === 'home' ? 'away' : 'home';
-      setTimeout(() => { endRally(recv); setHasStartedNew(false); }, 120); return;
-    }
-    // Défense non-touchée (D-) → l'attaque adverse est passée → point pour l'attaquant
-    if (action.kind === 'defense' && q === 'D-') {
-      const attacker: TeamSide = action.team === 'home' ? 'away' : 'home';
-      setTimeout(() => { endRally(attacker); setHasStartedNew(false); }, 120);
-    }
-  }, [activeRallyId, updateActionQuality, updateActionPlayer, endRally]);
-
-  const handleCourtClick = useCallback((x: number, y: number, team: TeamSide) => {
-    if (editMode) return;
-    if (displayedRallyId) {
-      setDisplayedRallyId(null); setSelectedActionId(null); return;
-    }
-
-    // ── Bloc en attente → résoudre B= (retour) ou B+ (défense) ──────────────
-    if (pendingBlockEnd.current) {
-      clearTimeout(pendingBlockEnd.current.timer);
-      const { blockActionId, blockerTeam } = pendingBlockEnd.current;
-      pendingBlockEnd.current = null;
-      setIsBlockPending(false);
-
-      const rid = activeRallyId!;
-      const rally = useMatchStore.getState().rallies.find(r => r.id === rid);
-      if (!rally) return;
-      const blockAct = rally.actions.find(a => a.id === blockActionId);
-      if (!blockAct) return;
-      const attackerTeam: TeamSide = blockerTeam === 'home' ? 'away' : 'home';
-
-      if (team === blockerTeam) {
-        // Clic sur le côté du bloqueur → B+ (bloque ralenti, défense à venir)
-        updateActionQuality(rid, blockActionId, 'B+');
-        const isRecvTeamDef = blockAct.phase === 'P3' && blockerTeam !== servingTeam;
-        const defPlayerId = isRecvTeamDef
-          ? findBlocDefSPlayer(x, y, blockerTeam, false)
-          : findBlocDefPlayer(x, y, blockerTeam, false);
-        addAction(rid, {
-          kind: 'defense', phase: 'P3', subPhase: blockAct.subPhase,
-          team: blockerTeam, zone: null, quality: DEFAULT_QUALITY['defense'] ?? 'A+',
-          x, y, playerId: defPlayerId,
-        } as any);
-      } else {
-        // Clic sur le côté de l'attaquant → B= (retour, soutien à venir)
-        updateActionQuality(rid, blockActionId, 'B=');
-        addAction(rid, {
-          kind: 'support', phase: 'P3', subPhase: blockAct.subPhase + 1,
-          team: attackerTeam, zone: null, quality: DEFAULT_QUALITY['support'] ?? 'R+',
-          x, y, playerId: null,
-        } as any);
-      }
-      setHasStartedNew(true);
-      return;
-    }
-
-    let rid = activeRallyId;
-    if (!rid) {
-      rid = startRally();
-      setHasStartedNew(true);
-      const serverOnStart = (servingTeam === 'home' ? rotationHome : rotationAway)[1];
-      addAction(rid, { kind: 'service', phase: 'P1', subPhase: 1, team: servingTeam, zone: null, playerId: serverOnStart?.id ?? null, quality: DEFAULT_QUALITY['service'] ?? 'S=' } as any);
-    }
-    const rally = useMatchStore.getState().rallies.find((r) => r.id === rid);
-    if (!rally) return;
-    const exp = nextExpectedAction(rally.actions, servingTeam);
-    if (!exp) return;
-
-    const last = rally.actions[rally.actions.length - 1];
-    let kind         = exp.kind;
-    let quality: AnyQuality = DEFAULT_QUALITY[kind] ?? 'A+';
-    let resolvedTeam = exp.team;
-    let actPhase     = exp.phase;
-    let actSubPhase  = exp.subPhase;
-
-    // ── Cas 1 : passe + clic côté adverse → 2e main / défense ───────────────
-    if (last?.kind === 'set' && team !== exp.team) {
-      updateActionQuality(rid, last.id, 'P++');
-      kind = 'defense'; quality = 'D='; resolvedTeam = team;
-
-    // ── Cas 2 : réception / défense / soutien + clic chez l'adversaire ───────
-    // La balle est renvoyée directement dans le camp adverse (balle libre)
-    } else if (
-      last && (last.kind === 'reception' || last.kind === 'defense' || last.kind === 'support')
-      && team !== exp.team
-    ) {
-      actPhase    = 'P3';
-      actSubPhase = last.phase === 'P3' ? last.subPhase + 1 : 1;
-      resolvedTeam = team;
-      // Zone avant (bloc/attaque, < 1/3 pour home, > 2/3 pour away)
-      // → attaque 1ère main ; zone arrière → défense puis cycle normal
-      const isFrontZone = team === 'home' ? y < 1 / 3 : y > 2 / 3;
-      kind    = isFrontZone ? 'attack'  : 'defense';
-      quality = isFrontZone ? (DEFAULT_QUALITY['attack']  ?? 'A+') : (DEFAULT_QUALITY['defense'] ?? 'A+');
-    }
-
-    // En P3, l'équipe qui reçoit (non-serveur) est en BlocDefS
-    const receivingInP3 = actPhase === 'P3' && resolvedTeam !== servingTeam;
-    const autoPlayerId =
-      kind === 'reception' ? findSideOutPlayer(x, y, resolvedTeam) :
-      kind === 'set'       ? findSetter(resolvedTeam) :
-      kind === 'attack'    ? findAttackPlayer(x, y, resolvedTeam) :
-      kind === 'block'     ? (receivingInP3 ? findBlocDefSPlayer(x, y, resolvedTeam, true)  : findBlocDefPlayer(x, y, resolvedTeam, true)) :
-      kind === 'defense'   ? (receivingInP3 ? findBlocDefSPlayer(x, y, resolvedTeam, false) : findBlocDefPlayer(x, y, resolvedTeam, false)) :
-      null;
-    addAction(rid, { kind, phase: actPhase, subPhase: actSubPhase, team: resolvedTeam, zone: null, quality, x, y, playerId: autoPlayerId } as any);
-    setHasStartedNew(true);
-
-    if (kind === 'attack' && quality === 'A++')
-      setTimeout(() => { endRally(resolvedTeam); setHasStartedNew(false); }, 120);
-  }, [editMode, activeRallyId, servingTeam, displayedRallyId, startRally, addAction, updateActionQuality, endRally, findSideOutPlayer, findSetter, findBlocDefPlayer, findBlocDefSPlayer, findAttackPlayer]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleServiceFault = useCallback(() => {
-    const rid = startRally(); setHasStartedNew(true);
-    const serverFault = (servingTeam === 'home' ? rotationHome : rotationAway)[1];
-    addAction(rid, { kind: 'service_fault', phase: 'P1', subPhase: 1, team: servingTeam, zone: null, playerId: serverFault?.id ?? null, quality: 'S-' } as any);
-    const recv: TeamSide = servingTeam === 'home' ? 'away' : 'home';
-    setTimeout(() => { endRally(recv); setHasStartedNew(false); }, 80);
-  }, [servingTeam, startRally, addAction, endRally]);
-
-  const handleUpdatePlayer = useCallback((rallyId: string, actionId: string, playerId: string | null) => {
-    updateActionPlayer(rallyId, actionId, playerId);
-  }, [updateActionPlayer]);
-
-  // ── Net click : contre (block) ──────────────────────────────────────────
-  const handleNetClick = useCallback((x: number) => {
-    if (editMode) return;
-    if (!activeRallyId) return;
-    if (pendingBlockEnd.current) return; // déjà en attente de résolution
-
-    const rally = useMatchStore.getState().rallies.find(r => r.id === activeRallyId);
-    if (!rally) return;
-    const lastAction = rally.actions[rally.actions.length - 1];
-    if (!lastAction || lastAction.kind !== 'attack') return; // seulement après une attaque
-
-    const attackerTeam = lastAction.team;
-    const blockerTeam: TeamSide = attackerTeam === 'home' ? 'away' : 'home';
-    const sub = lastAction.phase === 'P3' ? lastAction.subPhase + 1 : 1;
-    const blockY = blockerTeam === 'away' ? 0.95 : 0.05;
-
-    // Trouve le joueur bloqueur le plus proche du point de frappe
-    const isRecvTeamBlocking = lastAction.phase === 'P3' && blockerTeam !== servingTeam;
-    const blockPlayerId = isRecvTeamBlocking
-      ? findBlocDefSPlayer(x, 0.2, blockerTeam, true)
-      : findBlocDefPlayer(x, 0.2, blockerTeam, true);
-
-    addAction(activeRallyId, {
-      kind: 'block', phase: 'P3', subPhase: sub,
-      team: blockerTeam, zone: null, quality: 'B++',
-      x, y: blockY, playerId: blockPlayerId,
-    } as any);
-    setHasStartedNew(true);
-
-    // Récupère l'id de l'action de bloc depuis le store (synchrone)
-    const newRally = useMatchStore.getState().rallies.find(r => r.id === activeRallyId);
-    const blockAct = newRally?.actions[newRally.actions.length - 1];
-    if (!blockAct) return;
-
-    // Timer : par défaut B++ (bloc gagnant) après 1800ms
-    const timer = setTimeout(() => {
-      pendingBlockEnd.current = null;
-      setIsBlockPending(false);
-      endRally(blockerTeam);
-      setHasStartedNew(false);
-    }, 1800);
-
-    pendingBlockEnd.current = { timer, blockActionId: blockAct.id, blockerTeam };
-    setIsBlockPending(true);
-  }, [editMode, activeRallyId, servingTeam, addAction, endRally, findBlocDefPlayer, findBlocDefSPlayer]);
-
-  // ── Out-zone click : service ou attaque hors limites ────────────────────
-  const handleOutZoneClick = useCallback((_x: number, _y: number) => {
-    if (editMode) return;
-
-    // ── Bloc en attente → B- (BloqueOut, point pour l'attaquant) ────────────
-    if (pendingBlockEnd.current) {
-      clearTimeout(pendingBlockEnd.current.timer);
-      const { blockActionId, blockerTeam } = pendingBlockEnd.current;
-      pendingBlockEnd.current = null;
-      setIsBlockPending(false);
-      const attackerTeam: TeamSide = blockerTeam === 'home' ? 'away' : 'home';
-      updateActionQuality(activeRallyId!, blockActionId, 'B-');
-      setHasStartedNew(true);
-      setTimeout(() => { endRally(attackerTeam); setHasStartedNew(false); }, 80);
-      return;
-    }
-
-    const recv: TeamSide = servingTeam === 'home' ? 'away' : 'home';
-
-    // ── Cas 1 : pas encore de rally → service out direct (comme "Serv. faute") ─
-    if (!activeRallyId) {
-      const rid = startRally();
-      setHasStartedNew(true);
-      const server = (servingTeam === 'home' ? rotationHome : rotationAway)[1];
-      addAction(rid, {
-        kind: 'service_fault', phase: 'P1', subPhase: 1,
-        team: servingTeam, zone: null, quality: 'S-',
-        x: 0.5, y: servingTeam === 'home' ? 0.9 : 0.1,
-        playerId: server?.id ?? null,
-      } as any);
-      setTimeout(() => { endRally(recv); setHasStartedNew(false); }, 80);
-      return;
-    }
-
-    const rally = useMatchStore.getState().rallies.find(r => r.id === activeRallyId);
-    if (!rally) return;
-
-    const lastAction = rally.actions[rally.actions.length - 1];
-    const exp = nextExpectedAction(rally.actions, servingTeam);
-
-    // ── Cas 2 : service déjà enregistré → le marquer S- ─────────────────────
-    if (lastAction?.kind === 'service') {
-      updateActionQuality(activeRallyId, lastAction.id, 'S-');
-      const srvRecv: TeamSide = lastAction.team === 'home' ? 'away' : 'home';
-      setTimeout(() => { endRally(srvRecv); setHasStartedNew(false); }, 80);
-      return;
-    }
-
-    // ── Cas 3 : attaque déjà enregistrée → la marquer A- ────────────────────
-    let attackingTeam: TeamSide;
-    if (lastAction?.kind === 'attack') {
-      attackingTeam = lastAction.team;
-      updateActionQuality(activeRallyId, lastAction.id, 'A-');
-    } else if (exp?.kind === 'attack') {
-      // Attaque pas encore enregistrée → l'ajouter implicitement
-      attackingTeam = exp.team;
-      const attackY = attackingTeam === 'home' ? 0.2 : 0.8;
-      addAction(activeRallyId, {
-        kind: 'attack', phase: exp.phase, subPhase: exp.subPhase,
-        team: attackingTeam, zone: null, quality: 'A-',
-        x: 0.5, y: attackY, playerId: null,
-      } as any);
-    } else {
-      return; // autre phase → on ignore
-    }
-
-    const defendingTeam: TeamSide = attackingTeam === 'home' ? 'away' : 'home';
-    setHasStartedNew(true);
-    setTimeout(() => { endRally(defendingTeam); setHasStartedNew(false); }, 80);
-  }, [editMode, activeRallyId, servingTeam, rotationHome, rotationAway,
-      startRally, updateActionQuality, addAction, endRally]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleUndo = useCallback(() => {
-    if (activeRallyId) removeLastAction(activeRallyId);
-    else undoLastPoint();
-  }, [activeRallyId, removeLastAction, undoLastPoint]);
-
-  const handleAddPoint = useCallback((team: TeamSide) => {
-    if (activeRallyId) { endRally(team); setHasStartedNew(false); }
-  }, [activeRallyId, endRally]);
-
-  // Surlignage du filet (après une attaque, pour signaler qu'on peut bloquer)
-  const netHighlight = !!(activeRally && activeRally.actions[activeRally.actions.length - 1]?.kind === 'attack');
-
-  const instruction = (() => {
-    if (editMode) return '';
-    if (displayedRallyId) return 'Tap terrain pour revenir';
-    if (isBlockPending) return 'Bloc B++ → clic terrain pour B=/B+, OUT pour B−';
-    if (!activeRally) return 'Cliquez sur le terrain adverse';
-    if (nextAction) {
-      const side = nextAction.team === 'home' ? teamHomeName : teamAwayName;
-      const k: Record<ActionKind, string> = {
-        service: 'Service', service_fault: 'Faute svc', reception: 'Réception',
-        set: 'Passe', attack: 'Attaque', defense: 'Défense', block: 'Bloc', support: 'Soutiens',
-      };
-      return side.substring(0, 10) + ' — ' + k[nextAction.kind];
-    }
-    return 'Terminez le point (+1)';
-  })();
 
   // ── Selected player info for role picker ─────────────────────────────────
   const editSelectedPlayer = editSelectedId && editSelectedTeam ? (() => {
