@@ -38,20 +38,19 @@ const OPTS: Record<string, Option[]> = {
     { value:'A-',  label:'A− Faute',    color:'#f44336' },
   ],
   defense: [
-    { value:'D+',  label:'D+ OK',        color:'#4caf50' },
-    { value:'D=',  label:'D= Contactée', color:'#ff9800' },
-    { value:'D-',  label:'D− Non touch', color:'#f44336' },
+    { value:'D+',  label:'D+ défendu',        color:'#4caf50' },
+    { value:'D=',  label:'D= Peu mieux Faire', color:'#ff9800' },
+    { value:'D-',  label:'D− Non touché', color:'#f44336' },
   ],
   block: [
     { value:'B++', label:'B++ Point',   color:'#FFD700' },
-    { value:'B+',  label:'B+ Défense',  color:'#4caf50' },
-    { value:'B=',  label:'B= Retour',   color:'#ff9800' },
+    { value:'B+',  label:'B+ Ralenti',  color:'#4caf50' },
+    { value:'B=',  label:'B= Soutenu',   color:'#ff9800' },
     { value:'B-',  label:'B− Out',      color:'#f44336' },
   ],
   support: [
-    { value:'R+',  label:'Soutien OK',  color:'#4caf50' },
-    { value:'R=',  label:'Soutien moy', color:'#ff9800' },
-    { value:'R-',  label:'Echappé',     color:'#f44336' },
+    { value:'D+', label:'D+ Soutenu',  color:'#4caf50' },
+    { value:'D-', label:'D− Non touché',     color:'#f44336' },
   ],
   service_fault: [],
 };
