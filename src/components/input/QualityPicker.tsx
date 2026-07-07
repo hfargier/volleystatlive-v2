@@ -27,7 +27,8 @@ const OPTS: Record<string, Option[]> = {
     { value:'R-',  label:'R− Faible',    color:'#f44336' },
   ],
   set: [
-    { value:'P++', label:'P++ 2e main', color:'#FFD700' },
+    { value:'P++', label:'Pts 2e main', color:'#4caf50'  },
+    { value:'2nd=', label:'2nd defendu', color:'#FFD700' },
     { value:'P+',  label:'P+ Bonne',    color:'#4caf50' },
     { value:'P-',  label:'P− Mauvaise', color:'#f44336' },
   ],

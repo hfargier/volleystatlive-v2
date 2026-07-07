@@ -135,25 +135,25 @@ export function applyModel(
     const serverId  = rot[1].id;
     // Index dans le modèle pour ce tour de jeu
     const mi        = (offset + i) % 6;
-    const modelRot  = normKey(model.sideOutRoles as any, mi) ?? {};
-    const modelPos  = normKey(model.sideOutPositions as any, mi);
+    type XY = { x: number; y: number };
+    const modelRot    = normKey(model.sideOutRoles, mi) ?? ({} as Record<number, PlayerRole[]>);
+    const modelPos    = model.sideOutPositions  ? normKey(model.sideOutPositions, mi)  : undefined;
+    const modelBDPos  = model.blocDefPositions  ? normKey(model.blocDefPositions, mi)  : undefined;
+    const modelBDSPos = model.blocDefSPositions ? normKey(model.blocDefSPositions, mi) : undefined;
 
     const soPlayers: SideOutPlayer[] = [];
     const bdPlayers: SideOutPlayer[] = [];
-
-    const modelBDPos  = normKey(model.blocDefPositions  as any, mi);
-    const modelBDSPos = normKey(model.blocDefSPositions as any, mi);
 
     ([1, 2, 3, 4, 5, 6] as Position[]).forEach(p => {
       const player = rot[p];
       if (!player) return;
 
-      const soRoles: PlayerRole[] = (normKey(modelRot as any, p) ?? []) as PlayerRole[];
+      const soRoles: PlayerRole[] = normKey(modelRot, p) ?? [];
       const bdRoles: PlayerRole[] = ([2, 3, 4] as Position[]).includes(p) ? ['blocker'] : ['defender'];
 
       // ── Coordonnées SideOut ─────────────────────────────────────────────
       let soX: number, soY: number;
-      const soPos = normKey(modelPos as any, p);
+      const soPos: XY | undefined = modelPos ? normKey(modelPos, p) : undefined;
       if (soPos) {
         soX = isHome ? soPos.x : 1 - soPos.x;
         soY = isHome ? soPos.y : 1 - soPos.y;
@@ -163,7 +163,7 @@ export function applyModel(
 
       // ── Coordonnées Bloc/Def ────────────────────────────────────────────
       let bdX: number, bdY: number;
-      const bdPos = normKey(modelBDPos as any, p);
+      const bdPos: XY | undefined = modelBDPos ? normKey(modelBDPos, p) : undefined;
       if (bdPos) {
         bdX = isHome ? bdPos.x : 1 - bdPos.x;
         bdY = isHome ? bdPos.y : 1 - bdPos.y;
@@ -181,7 +181,7 @@ export function applyModel(
       bdsPlayers = ([1, 2, 3, 4, 5, 6] as Position[]).flatMap(p => {
         const player = rot[p];
         if (!player) return [];
-        const pt = normKey(modelBDSPos as any, p);
+        const pt: XY | undefined = normKey(modelBDSPos, p);
         if (!pt) return [];
         const x = isHome ? pt.x : 1 - pt.x;
         const y = isHome ? pt.y : 1 - pt.y;

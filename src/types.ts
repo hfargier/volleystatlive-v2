@@ -38,7 +38,7 @@ export interface Player {
 
 export type ServiceQuality  = 'S-'|'S='|'S+'|'S++';
 export type ReceptionQuality= 'Zip'|'R-'|'R='|'R+';
-export type SetQuality      = 'P-'|'P+'|'P++';
+export type SetQuality      = 'P-'|'P+'|'2nd='|'P++';
 export type AttackQuality   = 'A-'|'A='|'A+'|'A++';
 export type BlockQuality    = 'B-'|'B='|'B+'|'B++';
 export type DefenseQuality  = 'D-'|'D='|'D+';
