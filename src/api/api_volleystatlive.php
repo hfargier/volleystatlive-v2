@@ -29,11 +29,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ── Configuration BDD ─────────────────────────────────────────────────────────
-// ⚠️  Ne pas committer ce fichier dans un dépôt public.
-define('DB_HOST', '127.0.0.1');
-define('DB_NAME', 'semee2289142_9rvn4p');
-define('DB_USER', 'semee2289142_9rvn4p');
-define('DB_PASS', '***MASQUE***');
+// Identifiants hors du dépôt (il est public) : voir config.example.php.
+// Base distincte de celle des autres apps : config.php propre à VolleyStat Live,
+// déposé à côté de ce fichier sur le serveur.
+if (!is_file(__DIR__ . '/config.php')) {
+    http_response_code(500);
+    exit(json_encode(['status' => 'error', 'message' => 'Configuration serveur absente']));
+}
+require_once __DIR__ . '/config.php';
+
+define('DB_HOST', $host);
+define('DB_NAME', $db_name);
+define('DB_USER', $username);
+define('DB_PASS', $password);
 
 // ── Connexion PDO (singleton) ─────────────────────────────────────────────────
 function db(): PDO {

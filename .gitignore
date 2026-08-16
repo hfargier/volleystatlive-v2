@@ -25,3 +25,13 @@ dist-ssr
 
 # Identifiants de deploiement - ne jamais versionner
 deploy.config.json
+
+# Informations de connexion BDD - jamais versionnees ni deployees
+bdd.local.txt
+bdd.txt
+public/bdd.txt
+
+# Identifiants BDD / OneSignal - deposes sur le serveur uniquement
+public/config.php
+src/api/config.php
+config.php

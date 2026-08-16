@@ -1,5 +1,0 @@
-Nom de la base Mysql : semee2289142_9rvn4p
-Identifiant / login : semee2289142_9rvn4p
-Mot de passe : ***MASQUE***
-
-https://mysql25.lwspanel.com/phpmyadmin
