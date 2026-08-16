@@ -1,26 +1,30 @@
 import SftpClient from 'ssh2-sftp-client';
+import { chargerIdentifiants } from './deploy.credentials.mjs';
 
 const sftp = new SftpClient();
+const { host, user, password } = chargerIdentifiants();
 
 const CREDENTIALS = {
-  host:              'ftp.seme-et-tisse.fr',
+  host,
   port:              22,
-  username:          'seme-2289142',
-  password:          '***MASQUE***',
+  username:          user,
+  password,
   keepaliveInterval: 5000,
   keepaliveCountMax: 10,
   readyTimeout:      30000,
 };
 
 const LOCAL  = './dist';
-const REMOTE = '/htdocs/jsawebapp';
+// Sous-dossier obligatoire : la racine /htdocs/jsawebapp héberge le portail,
+// y déployer l'app l'écraserait (c'est exactement ce qui est arrivé en juillet).
+const REMOTE = '/htdocs/jsawebapp/statlive';
 
-console.log('Déploiement volleystatlive-v2 → /htdocs/jsawebapp/ ...');
+console.log('Déploiement volleystatlive-v2 → /htdocs/jsawebapp/statlive/ ...');
 
 try {
   await sftp.connect(CREDENTIALS);
   await sftp.uploadDir(LOCAL, REMOTE);
-  console.log('Déploiement terminé ! → https://seme-et-tisse.fr/jsawebapp/');
+  console.log('Déploiement terminé ! → https://seme-et-tisse.fr/jsawebapp/statlive/');
 } catch (err) {
   console.error('Erreur SFTP :', err.message);
   process.exit(1);

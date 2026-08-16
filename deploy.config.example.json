@@ -1,0 +1,6 @@
+{
+  "_commentaire": "Copier en deploy.config.json (non versionné) et renseigner. Les variables d'environnement FTP_HOST / FTP_USER / FTP_PASSWORD ont priorité.",
+  "host": "ftp.seme-et-tisse.fr",
+  "user": "A_REMPLACER",
+  "password": "A_REMPLACER"
+}

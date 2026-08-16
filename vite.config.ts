@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: command === 'build' ? '/jsawebapp/' : '/',
+  base: command === 'build' ? '/jsawebapp/statlive/' : '/',
   server: { port: 3000, host: true },
   build: {
     rollupOptions: {

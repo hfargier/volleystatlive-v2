@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Identifiants de deploiement - ne jamais versionner
+deploy.config.json
